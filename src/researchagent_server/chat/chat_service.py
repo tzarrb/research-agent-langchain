@@ -31,8 +31,10 @@ from langchain_community.chat_message_histories import RedisChatMessageHistory
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from researchagent_server.llm.mode_factory import ModelFactory
-from researchagent_server.utils.log_util import logger
+from utils.log_util import build_logger
 from entity.chat_request import ChatRequest
+
+logger = build_logger("chat-service")
 
 # 初始化会话历史
 messages_list: Dict[str, BaseChatMessageHistory] = {}

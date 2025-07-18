@@ -7,7 +7,7 @@ import typing as tp
 import loguru
 import loguru._logger
 from memoization import cached, CachingAlgorithmFlag
-# from chatchat.settings import Settings
+from config.settings import Settings
 
 
 def _filter_logs(record: dict) -> bool:

@@ -40,9 +40,9 @@ def import_yaml() -> ruamel.yaml.YAML:
 class SubModelComment(t.TypedDict):
     """parameter defines howto create template for sub model"""
     model_obj: BaseModel
-    dump_kwds: t.Dict
+    dump_kwds: dict
     is_entire_comment: bool = False # share comment for complex field such as list
-    sub_comments: t.Dict[str, "SubModelComment"]
+    sub_comments: dict[str, "SubModelComment"]
 
 
 class YamlTemplate:
@@ -50,8 +50,8 @@ class YamlTemplate:
     def __init__(
         self,
         model_obj: BaseModel,
-        dump_kwds: t.Dict={},
-        sub_comments: t.Dict[str, SubModelComment]={},
+        dump_kwds: dict = {},
+        sub_comments: dict[str, SubModelComment] = {},
     ):
         self.model_obj = model_obj
         self.dump_kwds = dump_kwds
@@ -169,7 +169,7 @@ class MyBaseModel(BaseModel):
     model_config = ConfigDict(
         use_attribute_docstrings=True,
         extra="allow",
-        env_file_encoding="utf-8",
+        # env_file_encoding="utf-8",
     )
 
 
@@ -207,8 +207,8 @@ class BaseFileSettings(BaseSettings):
     def create_template_file(
         self,
         model_obj: BaseFileSettings=None,
-        dump_kwds: t.Dict={},
-        sub_comments: t.Dict[str, SubModelComment]={},
+        dump_kwds: dict = {},
+        sub_comments: dict[str, SubModelComment] = {},
         write_file: bool | str | Path = False,
         file_format: t.Literal["yaml", "json"] = "yaml",
     ) -> str:
