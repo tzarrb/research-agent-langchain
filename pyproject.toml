@@ -17,6 +17,7 @@ dependencies = [
     "fastapi>=0.112.2",
     "pydantic>=2.11.7",
     "nltk>=3.9.1",
+    "ruamel-yaml"==0.18.14,
 ]
 
 [project.urls]

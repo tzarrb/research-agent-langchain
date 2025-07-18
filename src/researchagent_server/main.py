@@ -1,7 +1,9 @@
 
+import json
 import sys
 import os
 import argparse
+
 # 把 src 加入 sys.path
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if BASE_DIR not in sys.path:
@@ -14,42 +16,40 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import RedirectResponse
 
-from researchagent_server import __version__
-# from config.settings import *
+from utils.log_util import build_logger
+from config.settings import Settings
 from chat.chat_service import chat_async
 from api.endpoints.chat_routes import router as chat_router
 from api.endpoints.prompt_routes import router as prompt_router
 
 
+logger = build_logger("main")
 
 def create_app(run_mode: str = "") -> FastAPI:
+    logger.info(f"🔧 Starting API with basic settings: {json.dumps(Settings.basic_settings.model_dump(), ensure_ascii=False, indent=2)}")
+    logger.info(f"🔧 Starting API with model settings: {json.dumps(Settings.model_settings.model_dump(), ensure_ascii=False, indent=2)}")
+
     app = FastAPI(
         title="AI Chat API Service",
         description="基于 FastAPI 的聊天机器人接口服务",
-        version=__version__
+        version=Settings.basic_settings.version,
+        
     )
+    
+    # 添加 CORS 支持
     # MakeFastAPIOffline(app)
     # Add CORS middleware to allow all origins
     # 在config.py中设置OPEN_DOMAIN=True，允许跨域
-    # set OPEN_DOMAIN=True in config.py to allow cross-domain
-    # if Settings.basic_settings.OPEN_CROSS_DOMAIN:
-    #     app.add_middleware(
-    #         CORSMiddleware,
-    #         allow_origins=["*"],
-    #         allow_credentials=True,
-    #         allow_methods=["*"],
-    #         allow_headers=["*"],
-    #     )
+    if Settings.basic_settings.OPEN_CROSS_DOMAIN:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
-    # 添加 CORS 支持
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
+    
     # 注册路由
     app.include_router(chat_router, prefix="/api", tags=["Chat"])
     app.include_router(prompt_router, prefix="/api", tags=["Prompt"])
@@ -100,8 +100,8 @@ if __name__ == "__main__":
         description="About langchain-Chat, local knowledge based Chat with langchain"
         " ｜ 基于本地知识库的 Chat 问答",
     )
-    parser.add_argument("--host", type=str, default="localhost")
-    parser.add_argument("--port", type=int, default=18081)
+    parser.add_argument("--host", type=str, default=Settings.basic_settings.API_SERVER.get("host", "localhost"))
+    parser.add_argument("--port", type=int, default=Settings.basic_settings.API_SERVER.get("port", 18081))
     parser.add_argument("--ssl_keyfile", type=str)
     parser.add_argument("--ssl_certfile", type=str)
     # 初始化消息
