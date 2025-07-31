@@ -4,8 +4,8 @@
 *.log.*
 *.bak
 
-/src/researchagent_server/data/*
-!/src/researchagent_server/data/knowledge_base/samples
+/src/agent_server/data/*
+!/src/agent_server/data/knowledge_base/samples
 
 
 ### IntelliJ IDEA ###

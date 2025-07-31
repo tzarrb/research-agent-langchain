@@ -1,18 +1,84 @@
 [tool.poetry]
 name = "research-agent-lang"
 version = "0.1.0"
-description = "Langchain Chat"
+description = "Python生态下基于LangChain框架的AIGC项目解决方案,快速构建企业级Agent智能体"
 authors = ["ivan"]
 license = "MIT"
 readme = "README.md"
+# 项目主页 URL
+homepage = "https://github.com/tzarrb/research-agent-langchain"
+# 项目仓库 URL
 repository = "https://github.com/tzarrb/research-agent-lang.git"
+# 关键词，有助于在 PyPI 上被搜索到
+keywords = ["llm", "langchain", "agent", "research"]
 package-mode = false
 
+# --- 依赖管理 ---
 [tool.poetry.dependencies]
-python = ">=3.8.1,<3.13,!=3.9.7"
+python = ">=3.10,<3.13,!=3.9.7"
+langchain = "^0.3.0"
+fastapi = "^0.112.2"
+uvicorn = "^0.35.0"
+
+# --- 开发依赖 (dev-dependencies) ---
+# 使用依赖组来管理不同环境的依赖，例如开发、测试、文档等
+# 使用 poetry install --with dev 来安装这些依赖
+[tool.poetry.group.dev.dependencies]
+# 测试框架
+pytest = "^8.0.0"
+# pytest-cov 用于生成测试覆盖率报告
+pytest-cov = "^4.1.0"
+# 代码格式化工具
+black = "^24.2.0"
+# 代码检查和格式化工具
+ruff = "^0.2.0"
+# pre-commit 用于在提交代码前自动运行检查
+pre-commit = "^3.6.0"
+
+# --- 脚本 (Scripts) ---
+# 定义可以通过 `poetry run <script_name>` 运行的命令
+[tool.poetry.scripts]
+start-server = "agent_server.main:start"
+run-tests = "pytest"
+
+# --- 打包配置 ---
+# 指定要包含在最终打包文件中的文件夹或文件
+[tool.poetry.packages]
+include = ["agent_server"]
+
+# --- 构建系统配置 (build-system) ---
+#PEP 517/518 标准定义的，用于告诉打包工具（如 pip）
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.plugins.dotenv]
+ignore = "false"
+dotenv = "dotenv:plugin"
 
 
+# https://python-poetry.org/docs/repositories/
+[[tool.poetry.source]]
+name = "tsinghua"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
+priority = "primary"
+
+
+# --- 工具配置 (tool.*) ---
+
+# --- Pytest 配置 ---
+[tool.pytest.ini_options]
+# 设置测试文件所在的目录
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = [
+    "tests",
+]
+
+# --- Ruff (Linter & Formatter) 配置 ---
 [tool.ruff]
+# 每行最大长度
+line-length = 88
 extend-include = ["*.ipynb"]
 extend-exclude = [
     "docs/docs/expression_language/why.ipynb"  # TODO: look into why linter errors
@@ -31,13 +97,9 @@ extend-exclude = [
 "cookbook/gymnasium_agent_simulation.ipynb" = ["F821"]
 "docs/docs/integrations/document_loaders/tensorflow_datasets.ipynb" = ["F821"]
 
-[tool.poetry.plugins.dotenv]
-ignore = "false"
-dotenv = "dotenv:plugin"
-
-
-# https://python-poetry.org/docs/repositories/
-[[tool.poetry.source]]
-name = "tsinghua"
-url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
-priority = "primary"
+# --- Black (Formatter) 配置 ---
+[tool.black]
+# 每行最大长度，通常与 ruff 或其他工具保持一致
+line-length = 88
+# 指定目标 Python 版本，以应用相应的格式化规则
+target-version = ['py39']

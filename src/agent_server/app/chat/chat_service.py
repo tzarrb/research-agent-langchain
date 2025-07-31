@@ -9,8 +9,6 @@ from calendar import c
 from fastapi import Body
 from fastapi.responses import StreamingResponse, JSONResponse
 
-from typing import Dict, Optional, List
-
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.callbacks import StdOutCallbackHandler
 from langchain.callbacks.streaming_aiter import AsyncIteratorCallbackHandler
@@ -30,14 +28,14 @@ from langchain_community.chat_message_histories import RedisChatMessageHistory
 # 将项目根目录添加到 sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-from researchagent_server.llm.mode_factory import ModelFactory
-from utils.log_util import build_logger
-from entity.chat_request import ChatRequest
+from agent_server.app.llm.mode_factory import ModelFactory
+from agent_server.utils.log_util import build_logger
+from agent_server.schemas.chat.chat_request import ChatRequest
 
 logger = build_logger("chat-service")
 
 # 初始化会话历史
-messages_list: Dict[str, BaseChatMessageHistory] = {}
+messages_list: dict[str, BaseChatMessageHistory] = {}
     
 def chat(model_name: str, model_provider: str = "deepseek", input: str = ""):
     chat_model = ModelFactory.get_model(model_provider, model_name)
@@ -45,9 +43,10 @@ def chat(model_name: str, model_provider: str = "deepseek", input: str = ""):
     return message
 
 async def chat_async(data: ChatRequest):
-    model_provider = data.model_provider or "deepseek"
-    model_name = data.model_name or "deepseek-chat"
-    streaming = data.streaming or False
+    model_provider = data.model_provider
+    model_name = data.model_name
+    streaming = data.streaming or True
+    
     input = data.input
     conversation_id = data.conversation_id
 
@@ -107,11 +106,13 @@ async def chat_async(data: ChatRequest):
             #     yield event.values
         else:
             # Use async invocation with proper configuration
-            response = await chain_history.ainvoke(
+            result = await chain_history.ainvoke(
                 {"input": input},
                 config={"configurable": {"conversation_id": conversation_id}}
             )
-            yield response
+            response={"content":result, "conversation_id": conversation_id}
+            logger.info(f"conversation_id: {conversation_id}, chat result: {result}")
+            yield json.dumps(response)
     except Exception as e:
         # Handle errors appropriately
         logger.error(f"Error in chat processing: {str(e)}")
