@@ -1,29 +1,22 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import sys
 import typing as t
+from pathlib import Path
 
 import nltk
 
 from pydantic import field_validator
 from .pydantic_settings import BaseFileSettings, SettingsConfigDict, settings_property, MyBaseModel, cached_property
 
-from researchagent_server import __version__
+from agent_server import __version__
 
 
 # 数据目录，必须通过环境变量设置。如未设置则自动使用当前目录。
 ROOT = Path(os.environ.get("RESEARCHAGENT_LANGCHAIN_ROOT", ".")).resolve()
 AGENT_ROOT = Path(os.environ.get("RESEARCHAGENT_LANGCHAIN_AGENT_ROOT", "./src/researchagent_server/")).resolve()
 print(f"ROOT: {AGENT_ROOT}, AGENT_ROOT: {AGENT_ROOT}")
-
-XF_MODELS_TYPES = {
-    "text2image": {"model_family": ["stable_diffusion"]},
-    "image2image": {"model_family": ["stable_diffusion"]},
-    "speech2text": {"model_family": ["whisper"]},
-    "text2speech": {"model_family": ["ChatTTS"]},
-}
 
 
 class BasicSettings(BaseFileSettings):
@@ -44,6 +37,8 @@ class BasicSettings(BaseFileSettings):
     HTTPX_DEFAULT_TIMEOUT: float = 300
     """httpx 请求默认超时时间（秒）。如果加载模型或对话较慢，出现超时错误，可以适当加大该值。"""
 
+    # 使用 @computed_field，可以在模型内部根据其他字段动态生成新字段
+    # 这比在模型外部手动拼接字符串要优雅得多。
     # @computed_field
     @cached_property
     def CONFIG_ROOT(self) -> Path:
@@ -90,7 +85,7 @@ class BasicSettings(BaseFileSettings):
     @cached_property
     def NLTK_DATA_PATH(self) -> Path:
         """nltk 模型存储路径"""
-        p = self.DATA_PATH / "nltk_data"
+        p = self.DATA_PATH / "nltk"
         return p
 
     # @computed_field
@@ -101,14 +96,11 @@ class BasicSettings(BaseFileSettings):
         (p / "openai_files").mkdir(parents=True, exist_ok=True)
         return p
 
-    KB_ROOT_PATH: str = str(AGENT_ROOT / "data/knowledge_base")
+    KN_ROOT_PATH: str = str(AGENT_ROOT / "data/knowledge")
     """知识库默认存储路径"""
 
-    DB_ROOT_PATH: str = str(AGENT_ROOT / "data/knowledge_base/info.db")
+    DB_ROOT_PATH: str = str(AGENT_ROOT / "data/knowledge/info.db")
     """数据库默认存储路径。如果使用sqlite，可以直接修改DB_ROOT_PATH；如果使用其它数据库，请直接修改SQLALCHEMY_DATABASE_URI。"""
-
-    SQLALCHEMY_DATABASE_URI:str = "sqlite:///" + str(AGENT_ROOT / "data/knowledge_base/info.db")
-    """知识库信息数据库连接URI"""
 
     OPEN_CROSS_DOMAIN: bool = True
     """API 是否开启跨域"""
@@ -119,10 +111,10 @@ class BasicSettings(BaseFileSettings):
     Windows 下 WEBUI 自动弹出浏览器时，如果地址为 "0.0.0.0" 是无法访问的，需要手动修改地址栏
     """
 
-    API_SERVER: dict = {"host": DEFAULT_BIND_HOST, "port": 18081, "public_host": "127.0.0.1", "public_port": 18081}
+    API_SERVER: dict[str, t.Any] = {"host": DEFAULT_BIND_HOST, "port": 18081, "public_host": "127.0.0.1", "public_port": 18081}
     """API 服务器地址。其中 public_host 用于生成云服务公网访问链接（如知识库文档链接）"""
 
-    WEBUI_SERVER: dict = {"host": DEFAULT_BIND_HOST, "port": 18082}
+    WEBUI_SERVER: dict[str, t.Any] = {"host": DEFAULT_BIND_HOST, "port": 18082}
     """WEBUI 服务器地址"""
 
     def make_dirs(self):
@@ -136,135 +128,7 @@ class BasicSettings(BaseFileSettings):
             p.mkdir(parents=True, exist_ok=True)
         for n in ["image", "audio", "video"]:
             (self.MEDIA_PATH / n).mkdir(parents=True, exist_ok=True)
-        Path(self.KB_ROOT_PATH).mkdir(parents=True, exist_ok=True)
-
-
-class KBSettings(BaseFileSettings):
-    """知识库相关配置"""
-
-    model_config = SettingsConfigDict(yaml_file=AGENT_ROOT / "config/kb_settings.yaml")
-
-    DEFAULT_KNOWLEDGE_BASE: str = "samples"
-    """默认使用的知识库"""
-
-    DEFAULT_VS_TYPE: t.Literal["faiss", "milvus", "zilliz", "pg", "es", "relyt", "chromadb"] = "faiss"
-    """默认向量库/全文检索引擎类型"""
-
-    CACHED_VS_NUM: int = 1
-    """缓存向量库数量（针对FAISS）"""
-
-    CACHED_MEMO_VS_NUM: int = 10
-    """缓存临时向量库数量（针对FAISS），用于文件对话"""
-
-    CHUNK_SIZE: int = 750
-    """知识库中单段文本长度(不适用MarkdownHeaderTextSplitter)"""
-
-    OVERLAP_SIZE: int = 150
-    """知识库中相邻文本重合长度(不适用MarkdownHeaderTextSplitter)"""
-
-    VECTOR_SEARCH_TOP_K: int = 3 # TODO: 与 tool 配置项重复
-    """知识库匹配向量数量"""
-
-    SCORE_THRESHOLD: float = 2.0
-    """知识库匹配相关度阈值，取值范围在0-2之间，SCORE越小，相关度越高，取到2相当于不筛选，建议设置在0.5左右"""
-
-    DEFAULT_SEARCH_ENGINE: t.Literal["bing", "duckduckgo", "metaphor", "searx"] = "duckduckgo"
-    """默认搜索引擎"""
-
-    SEARCH_ENGINE_TOP_K: int = 3
-    """搜索引擎匹配结题数量"""
-
-    ZH_TITLE_ENHANCE: bool = False
-    """是否开启中文标题加强，以及标题增强的相关配置"""
-
-    PDF_OCR_THRESHOLD: t.Tuple[float, float] = (0.6, 0.6)
-    """
-    PDF OCR 控制：只对宽高超过页面一定比例（图片宽/页面宽，图片高/页面高）的图片进行 OCR。
-    这样可以避免 PDF 中一些小图片的干扰，提高非扫描版 PDF 处理速度
-    """
-
-    KB_INFO: t.Dict[str, str] = {"samples": "关于本项目issue的解答"} # TODO: 都存在数据库了，这个配置项还有必要吗？
-    """每个知识库的初始化介绍，用于在初始化知识库时显示和Agent调用，没写则没有介绍，不会被Agent调用。"""
-
-    kbs_config: t.Dict[str, t.Dict] = {
-            "faiss": {},
-            "milvus": {
-                "host": "127.0.0.1",
-                "port": "19530",
-                "user": "",
-                "password": "",
-                "secure": False
-            },
-            "zilliz": {
-                "host": "in01-a7ce524e41e3935.ali-cn-hangzhou.vectordb.zilliz.com.cn",
-                "port": "19530",
-                "user": "",
-                "password": "",
-                "secure": True
-            },
-            "pg": {
-                "connection_uri": "postgresql://postgres:postgres@127.0.0.1:5432/langchain_chatchat"
-            },
-            "relyt": {
-                "connection_uri": "postgresql+psycopg2://postgres:postgres@127.0.0.1:7000/langchain_chatchat"
-            },
-            "es": {
-                "scheme": "http",
-                "host": "127.0.0.1",
-                "port": "9200",
-                "index_name": "test_index",
-                "user": "",
-                "password": "",
-                "verify_certs": True,
-                "ca_certs": None,
-                "client_cert": None,
-                "client_key": None
-            },
-            "milvus_kwargs": {
-                "search_params": {
-                    "metric_type": "L2"
-                },
-                "index_params": {
-                    "metric_type": "L2",
-                    "index_type": "HNSW"
-                }
-            },
-            "chromadb": {}
-        }
-    """可选向量库类型及对应配置"""
-
-    text_splitter_dict: t.Dict[str, t.Dict[str, t.Any]] = {
-            "ChineseRecursiveTextSplitter": {
-                "source": "",
-                "tokenizer_name_or_path": "",
-            },
-            "SpacyTextSplitter": {
-                "source": "huggingface",
-                "tokenizer_name_or_path": "gpt2",
-            },
-            "RecursiveCharacterTextSplitter": {
-                "source": "tiktoken",
-                "tokenizer_name_or_path": "cl100k_base",
-            },
-            "MarkdownHeaderTextSplitter": {
-                "headers_to_split_on": [
-                    ("#", "head1"),
-                    ("##", "head2"),
-                    ("###", "head3"),
-                    ("####", "head4"),
-                ]
-            },
-        }
-    """
-    TextSplitter配置项，如果你不明白其中的含义，就不要修改。
-    source 如果选择tiktoken则使用openai的方法 "huggingface"
-    """
-
-    TEXT_SPLITTER_NAME: str = "ChineseRecursiveTextSplitter"
-    """TEXT_SPLITTER 名称"""
-
-    EMBEDDING_KEYWORD_FILE: str = "embedding_keywords.txt"
-    """Embedding模型定制词语的词表文件"""
+        Path(self.KN_ROOT_PATH).mkdir(parents=True, exist_ok=True)
 
 
 class PlatformConfig(MyBaseModel):
@@ -291,25 +155,25 @@ class PlatformConfig(MyBaseModel):
     auto_detect_model: bool = False
     """是否自动获取平台可用模型列表。设为 True 时下方不同模型类型可自动检测"""
 
-    llm_models: t.Union[t.Literal["auto"], t.List[str]] = []
+    llm_models: t.Literal["auto"] | list[str] = []
     """该平台支持的大语言模型列表，auto_detect_model 设为 True 时自动检测"""
 
-    embed_models: t.Union[t.Literal["auto"], t.List[str]] = []
+    embed_models: t.Literal["auto"] | list[str] = []
     """该平台支持的嵌入模型列表，auto_detect_model 设为 True 时自动检测"""
 
-    text2image_models: t.Union[t.Literal["auto"], t.List[str]] = []
+    text2image_models: t.Literal["auto"] | list[str] = []
     """该平台支持的图像生成模型列表，auto_detect_model 设为 True 时自动检测"""
 
-    image2text_models: t.Union[t.Literal["auto"], t.List[str]] = []
+    image2text_models: t.Literal["auto"] | list[str] = []
     """该平台支持的多模态模型列表，auto_detect_model 设为 True 时自动检测"""
 
-    rerank_models: t.Union[t.Literal["auto"], t.List[str]] = []
+    rerank_models: t.Literal["auto"] | list[str] = []
     """该平台支持的重排模型列表，auto_detect_model 设为 True 时自动检测"""
 
-    speech2text_models: t.Union[t.Literal["auto"], t.List[str]] = []
+    speech2text_models: t.Literal["auto"] | list[str] = []
     """该平台支持的 STT 模型列表，auto_detect_model 设为 True 时自动检测"""
 
-    text2speech_models: t.Union[t.Literal["auto"], t.List[str]] = []
+    text2speech_models: t.Literal["auto"] | list[str] = []
     """该平台支持的 TTS 模型列表，auto_detect_model 设为 True 时自动检测"""
 
     # @field_validator("api_key")
@@ -317,11 +181,15 @@ class PlatformConfig(MyBaseModel):
     #     if not v or v == "":
     #         raise ValueError("API key不能为空")
     #     return v
-
+ 
+ 
 class ModelSettings(BaseFileSettings):
     """模型配置项"""
 
     model_config = SettingsConfigDict(yaml_file=AGENT_ROOT / "config/model_settings.yaml")
+
+    DEFAULT_LLM_PLATFORM: str = "deepseek"
+    """默认 LLM 平台"""
 
     DEFAULT_LLM_MODEL: str = "deepseek-chat"
     """默认选用的 LLM 名称"""
@@ -338,14 +206,14 @@ class ModelSettings(BaseFileSettings):
     TEMPERATURE: float = 0.7
     """LLM通用对话参数"""
 
-    SUPPORT_AGENT_MODELS: t.List[str] = [
+    SUPPORT_AGENT_MODELS: list[str] = [
             "deepseek-chat",
             "qwen-max",
             "gpt-4o",
         ]
     """支持的Agent模型"""
 
-    LLM_MODEL_CONFIG: t.Dict[str, t.Dict] = {
+    LLM_MODEL_CONFIG: dict[str, dict[str, t.Any]] = {
             # 意图识别不需要输出，模型后台知道就行
             "preprocess_model": {
                 "model": "",
@@ -384,13 +252,26 @@ class ModelSettings(BaseFileSettings):
                 "model": "sd-turbo",
                 "size": "256*256",
             },
+            "embed_model": {
+                "model": "",
+                "batch_size": 32,
+                "chunk_size": 1000,
+                "chunk_overlap": 100,
+                "max_retries": 3,
+                "timeout": 30,
+                "max_tokens": 4096,
+                "temperature": 0.01,
+                "history_len": 10,
+                "prompt_name": "default",
+                "callbacks": True,
+            },
         }
     """
     LLM模型配置，包括了不同模态初始化参数。
     `model` 如果留空则自动使用 DEFAULT_LLM_MODEL
     """
 
-    MODEL_PLATFORMS: t.List[PlatformConfig] = [
+    MODEL_PLATFORMS: list[PlatformConfig] = [
             PlatformConfig(
                 platform_name="DeepSeek",
                 platform_type="deepseek",
@@ -490,14 +371,13 @@ class ModelSettings(BaseFileSettings):
         ]
     """模型平台配置"""
 
-
 class ToolSettings(BaseFileSettings):
     """Agent 工具配置项"""
     model_config = SettingsConfigDict(yaml_file=AGENT_ROOT / "config/tool_settings.yaml",
                                       json_file=AGENT_ROOT / "config/tool_settings.json",
                                       extra="allow")
 
-    search_local_knowledgebase: dict = {
+    search_local_knowledgebase: dict[str, t.Any] = {
         "use": False,
         "top_k": 3,
         "score_threshold": 2.0,
@@ -513,7 +393,7 @@ class ToolSettings(BaseFileSettings):
     }
     '''本地知识库工具配置项'''
 
-    search_internet: dict = {
+    search_internet: dict[str, t.Any] = {
         "use": False,
         "search_engine_name": "duckduckgo",
         "search_engine_config": {
@@ -545,38 +425,38 @@ class ToolSettings(BaseFileSettings):
     }
     '''搜索引擎工具配置项。推荐自己部署 searx 搜索引擎，国内使用最方便。'''
 
-    arxiv: dict = {
+    arxiv: dict[str, t.Any] = {
         "use": False,
     }
 
-    weather_check: dict = {
+    weather_check: dict[str, t.Any] = {
         "use": False,
         "api_key": "",
     }
     '''心知天气（https://www.seniverse.com/）工具配置项'''
 
-    search_youtube: dict = {
+    search_youtube: dict[str, t.Any] = {
         "use": False,
     }
 
-    wolfram: dict = {
+    wolfram: dict[str, t.Any] = {
         "use": False,
         "appid": "",
     }
 
-    calculate: dict = {
+    calculate: dict[str, t.Any] = {
         "use": False,
     }
     '''numexpr 数学计算工具配置项'''
 
-    text2images: dict = {
+    text2images: dict[str, t.Any] = {
         "use": False,
         "model": "sd-turbo",
         "size": "256*256",
     }
     '''图片生成工具配置项。model 必须是在 model_settings.yaml/MODEL_PLATFORMS 中配置过的。'''
 
-    text2sql: dict = {
+    text2sql: dict[str, t.Any] = {
         # 该工具需单独指定使用的大模型，与用户前端选择使用的模型无关
         "model_name": "qwen-plus",
         "use": False,
@@ -610,14 +490,14 @@ class ToolSettings(BaseFileSettings):
     5、数据库表名、字段名应与其实际作用保持一致、容易理解，且应对数据库表名、字段进行详细的备注说明，帮助大模型更好理解数据库结构；
     6、若现有数据库表名难于让大模型理解，可配置下面table_comments字段，补充说明某些表的作用。
     '''
-  
-    amap: dict = {
+
+    amap: dict[str, t.Any] = {
         "use": False,
         "api_key": "高德地图 API KEY",
     }
     '''高德地图、天气相关工具配置项。'''
 
-    text2promql: dict = {
+    text2promql: dict[str, t.Any] = {
         "use": False,
         # <your_prometheus_ip>:<your_prometheus_port>
         "prometheus_endpoint": "http://127.0.0.1:9090",
@@ -633,13 +513,12 @@ class ToolSettings(BaseFileSettings):
     3、当前仅支持 单prometheus 查询, 后续考虑支持 多prometheus 查询.
     '''
 
-    url_reader: dict = {
+    url_reader: dict[str, t.Any] = {
         "use": False,
         "timeout": "10000",
     }
     '''URL内容阅读（https://r.jina.ai/）工具配置项
     请确保部署的网络环境良好，以免造成超时等问题'''
-
 
 class PromptSettings(BaseFileSettings):
     """Prompt 模板.除 Agent 模板使用 f-string 外，其它均使用 jinja2 格式"""
@@ -648,7 +527,7 @@ class PromptSettings(BaseFileSettings):
                                       json_file=AGENT_ROOT / "config/prompt_settings.json",
                                       extra="allow")
 
-    preprocess_model: dict = {
+    preprocess_model: dict[str, t.Any] = {
         "default": (
             "你只要回复0 和 1 ，代表不需要使用工具。以下几种问题不需要使用工具:\n"
             "1. 需要联网查询的内容\n"
@@ -660,7 +539,7 @@ class PromptSettings(BaseFileSettings):
     }
     """意图识别用模板"""
 
-    llm_model: dict = {
+    llm_model: dict[str, t.Any] = {
         "default": "{{input}}",
         "with_history": (
             "The following is a friendly conversation between a human and an AI.\n"
@@ -674,7 +553,7 @@ class PromptSettings(BaseFileSettings):
     }
     '''普通 LLM 用模板'''
 
-    rag: dict = {
+    rag: dict[str, t.Any] = {
         "default": (
             "【指令】根据已知信息，简洁和专业的来回答问题。"
             "如果无法从中得到答案，请说 “根据已知信息无法回答该问题”，不允许在答案中添加编造成分，答案请使用中文。\n\n"
@@ -688,7 +567,7 @@ class PromptSettings(BaseFileSettings):
     }
     '''RAG 用模板，可用于知识库问答、文件对话、搜索引擎对话'''
 
-    action_model: dict = {
+    action_model: dict[str, t.Any] = {
         "GPT-4": (
             "Answer the following questions as best you can. You have access to the following tools:\n"
             "The way you use the tools is by specifying a json blob.\n"
@@ -791,35 +670,190 @@ class PromptSettings(BaseFileSettings):
     }
     """Agent 模板"""
 
-    postprocess_model: dict = {
+    postprocess_model: dict[str, t.Any] = {
         "default": "{{input}}",
     }
     """后处理模板"""
 
 
-class SettingsContainer:
-    AGENT_ROOT = AGENT_ROOT
+class KNSettings(BaseFileSettings):
+    """知识库相关配置"""
 
+    model_config = SettingsConfigDict(yaml_file=AGENT_ROOT / "config/kn_settings.yaml")
+
+    DEFAULT_KNOWLEDGE_NAME: str = "samples"
+    """默认使用的知识库"""
+
+    DEFAULT_VS_TYPE: t.Literal["faiss", "milvus", "zilliz", "pg", "es", "relyt", "chromadb"] = "pg"
+    """默认向量库/全文检索引擎类型"""
+
+    CACHED_VS_NUM: int = 1
+    """缓存向量库数量（针对FAISS）"""
+
+    CACHED_MEMO_VS_NUM: int = 10
+    """缓存临时向量库数量（针对FAISS），用于文件对话"""
+
+    CHUNK_SIZE: int = 750
+    """知识库中单段文本长度(不适用MarkdownHeaderTextSplitter)"""
+
+    OVERLAP_SIZE: int = 150
+    """知识库中相邻文本重合长度(不适用MarkdownHeaderTextSplitter)"""
+
+    VECTOR_SEARCH_TOP_K: int = 3 # TODO: 与 tool 配置项重复
+    """知识库匹配向量数量"""
+
+    SCORE_THRESHOLD: float = 2.0
+    """知识库匹配相关度阈值，取值范围在0-2之间，SCORE越小，相关度越高，取到2相当于不筛选，建议设置在0.5左右"""
+
+    DEFAULT_SEARCH_ENGINE: t.Literal["bing", "baidu", "tavily"] = "tavily"
+    """默认搜索引擎"""
+
+    SEARCH_ENGINE_TOP_K: int = 3
+    """搜索引擎匹配结果数量"""
+
+    ZH_TITLE_ENHANCE: bool = False
+    """是否开启中文标题加强，以及标题增强的相关配置"""
+
+    PDF_OCR_THRESHOLD: tuple[float, float] = (0.6, 0.6)
+    """
+    PDF OCR 控制：只对宽高超过页面一定比例（图片宽/页面宽，图片高/页面高）的图片进行 OCR。
+    这样可以避免 PDF 中一些小图片的干扰，提高非扫描版 PDF 处理速度
+    """
+
+    KN_INFO: dict[str, str] = {"samples": "关于本项目issue的解答"} # TODO: 都存在数据库了，这个配置项还有必要吗？
+    """每个知识库的初始化介绍，用于在初始化知识库时显示和Agent调用，没写则没有介绍，不会被Agent调用。"""
+
+    VS_CONFIG: dict[str, dict[str, t.Any]] = {
+            "faiss": {},
+            "milvus": {
+                "host": "127.0.0.1",
+                "port": "19530",
+                "user": "",
+                "password": "",
+                "secure": False
+            },
+            "zilliz": {
+                "host": "in01-a7ce524e41e3935.ali-cn-hangzhou.vectordb.zilliz.com.cn",
+                "port": "19530",
+                "user": "",
+                "password": "",
+                "secure": True
+            },
+            "pg": {
+                "connection_uri": "postgresql://postgres:postgres@127.0.0.1:5432/researchagent"
+            },
+            "relyt": {
+                "connection_uri": "postgresql+psycopg2://postgres:postgres@127.0.0.1:7000/researchagent"
+            },
+            "es": {
+                "scheme": "http",
+                "host": "127.0.0.1",
+                "port": "9200",
+                "index_name": "vector-researchagent",
+                "user": "",
+                "password": "",
+                "verify_certs": True,
+                "ca_certs": None,
+                "client_cert": None,
+                "client_key": None
+            },
+            "milvus_kwargs": {
+                "search_params": {
+                    "metric_type": "L2"
+                },
+                "index_params": {
+                    "metric_type": "L2",
+                    "index_type": "HNSW"
+                }
+            },
+            "chromadb": {}
+        }
+    """可选向量库类型及对应配置"""
+
+    TEXT_SPLITTER: dict[str, dict[str, t.Any]] = {
+            "ChineseRecursiveTextSplitter": {
+                "source": "",
+                "tokenizer_name_or_path": "",
+            },
+            "SpacyTextSplitter": {
+                "source": "huggingface",
+                "tokenizer_name_or_path": "gpt2",
+            },
+            "RecursiveCharacterTextSplitter": {
+                "source": "tiktoken",
+                "tokenizer_name_or_path": "cl100k_base",
+            },
+            "MarkdownHeaderTextSplitter": {
+                "headers_to_split_on": [
+                    ("#", "head1"),
+                    ("##", "head2"),
+                    ("###", "head3"),
+                    ("####", "head4"),
+                ]
+            },
+        }
+    """
+    TextSplitter配置项，如果你不明白其中的含义，就不要修改。
+    source 如果选择tiktoken则使用openai的方法 "huggingface"
+    """
+
+    TEXT_SPLITTER_NAME: str = "ChineseRecursiveTextSplitter"
+    """TEXT_SPLITTER 名称"""
+
+    EMBEDDING_KEYWORD_FILE: str = "embedding_keywords.txt"
+    """Embedding模型定制词语的词表文件"""
+
+
+class DBSettings(BaseFileSettings):
+    """数据库相关配置"""
+    
+    model_config = SettingsConfigDict(yaml_file=AGENT_ROOT / "config/db_settings.yaml")
+    
+    # SQLALCHEMY_DATABASE_URI:str = "sqlite:///" + str(AGENT_ROOT / "data/knowledge/info.db")
+    SQLALCHEMY_DATABASE_URI:str = "postgresql+asyncpg://root:123456@127.0.0.1:5433/researchagent"
+    """知识库信息数据库连接URI"""
+
+    POOL_SIZE: int = 10
+    """数据库连接池大小"""
+    
+    MAX_OVERFLOW: int = 5
+    """数据库连接池最大溢出数"""
+    
+    POOL_TIMEOUT: int = 30
+    """数据库连接池超时时间，单位秒"""
+    
+    POOL_RECYCLE: int = 1800
+    """数据库连接池回收时间，单位秒"""
+    
+    ECHO: bool = False
+    """是否打印SQL语句"""
+
+
+class SettingsContainer:
     basic_settings: BasicSettings = settings_property(BasicSettings())
-    kb_settings: KBSettings = settings_property(KBSettings())
     model_settings: ModelSettings = settings_property(ModelSettings())
     tool_settings: ToolSettings = settings_property(ToolSettings())
     prompt_settings: PromptSettings = settings_property(PromptSettings())
+    kn_settings: KNSettings = settings_property(KNSettings())
+    db_settings: DBSettings = settings_property(DBSettings())
 
     # sub_comments={"MODEL_PLATFORMS": {"model_obj": PlatformConfig(), "is_entire_comment": True}}
-    def createl_all_templates(self):
-        self.basic_settings.create_template_file(write_file=True)
-        self.kb_settings.create_template_file(write_file=True)
-        self.model_settings.create_template_file(write_file=True)
+    def create_all_templates(self):
+        self.basic_settings.create_template_file(write_file=True, file_format="yaml", model_obj=BasicSettings())
+        self.model_settings.create_template_file(write_file=True, file_format="yaml", model_obj=ModelSettings(),
+                                                 sub_comments={"MODEL_PLATFORMS": {"model_obj": PlatformConfig(), "is_entire_comment": True}})
         self.tool_settings.create_template_file(write_file=True, file_format="yaml", model_obj=ToolSettings())
-        self.prompt_settings.create_template_file(write_file=True, file_format="yaml")
+        self.prompt_settings.create_template_file(write_file=True, file_format="yaml", model_obj=PromptSettings())
+        self.kn_settings.create_template_file(write_file=True, file_format="yaml", model_obj=KNSettings())
+        self.db_settings.create_template_file(write_file=True, file_format="yaml", model_obj=DBSettings())
 
     def set_auto_reload(self, flag: bool=True):
         self.basic_settings.auto_reload = flag
-        self.kb_settings.auto_reload = flag
         self.model_settings.auto_reload = flag
         self.tool_settings.auto_reload = flag
         self.prompt_settings.auto_reload = flag
+        self.kn_settings.auto_reload = flag
+        self.db_settings.auto_reload = flag
 
 
 Settings = SettingsContainer()
@@ -827,4 +861,4 @@ nltk.data.path.append(str(Settings.basic_settings.NLTK_DATA_PATH))
 
 
 if __name__ == "__main__":
-    Settings.createl_all_templates()
+    Settings.create_all_templates()

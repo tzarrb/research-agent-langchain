@@ -32,7 +32,7 @@ ResearchAgent-LangChain是Python生态下基于LangChain框架的AIGC项目解�
 - **核心框架**: Python、LangChain、FastApi
 - **AI 能力**: LangChain (集成OpenAI/DeepSeek/阿里云 DashScope)
 - **向量存储**: PGVector、Redis Vector Store
-- **动态配置**: Nacos
+- **动态配置**: Pydantic+YAML / Nacos
 - **检索增强生成**: RAG 架构
 - **Agent**: 多Agent路由架构
 - **前端框架**: Vue3、Element Plus、Element Plus X

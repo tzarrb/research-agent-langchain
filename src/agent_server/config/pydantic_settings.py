@@ -37,14 +37,6 @@ def import_yaml() -> ruamel.yaml.YAML:
     return yaml
 
 
-class SubModelComment(t.TypedDict):
-    """parameter defines howto create template for sub model"""
-    model_obj: BaseModel
-    dump_kwds: dict
-    is_entire_comment: bool = False # share comment for complex field such as list
-    sub_comments: dict[str, "SubModelComment"]
-
-
 class YamlTemplate:
     """create yaml configuration template for pydantic model object"""
     def __init__(
@@ -165,12 +157,21 @@ class YamlTemplate:
         return template
 
 
+class SubModelComment(t.TypedDict):
+    """parameter defines howto create template for sub model"""
+    model_obj: BaseModel
+    dump_kwds: dict[str, t.Any]
+    is_entire_comment: bool # share comment for complex field such as list, default is False
+    sub_comments: dict[str, "SubModelComment"]
+
+
 class MyBaseModel(BaseModel):
     model_config = ConfigDict(
         use_attribute_docstrings=True,
         extra="allow",
         # env_file_encoding="utf-8",
     )
+
 
 
 class BaseFileSettings(BaseSettings):
@@ -207,7 +208,7 @@ class BaseFileSettings(BaseSettings):
     def create_template_file(
         self,
         model_obj: BaseFileSettings=None,
-        dump_kwds: dict = {},
+        dump_kwds: dict[str, t.Any] = {},
         sub_comments: dict[str, SubModelComment] = {},
         write_file: bool | str | Path = False,
         file_format: t.Literal["yaml", "json"] = "yaml",
