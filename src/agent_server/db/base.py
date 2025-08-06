@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import (
 
 from ..utils.log_util import build_logger
 from ..config.settings import Settings
-from .models.base import BaseModel
+from .models.base import BaseEntity
 
 
 logger = build_logger("database")
@@ -26,6 +26,7 @@ logger = build_logger("database")
 _sync_engine: Optional[Any] = None
 _SyncSessionFactory: Optional[sessionmaker[Session]] = None
 
+# 异步Session工厂（用于大数据处理等场景）
 _async_engine: Optional[AsyncEngine] = None
 _AsyncSessionFactory: Optional[async_sessionmaker[AsyncSession]] = None
 
@@ -164,6 +165,6 @@ async def create_db_and_tables():
         
         # Base.metadata 是所有继承了 Base 的模型类的元数据集合
         # 让 SQLAlchemy 根据所有继承了 Base 的模型类去创建表
-        await conn.run_sync(BaseModel.metadata.create_all)
+        await conn.run_sync(BaseEntity.metadata.create_all)
     logger.info("数据库表已成功同步/创建。")
     
