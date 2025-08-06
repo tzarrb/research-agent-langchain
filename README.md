@@ -50,7 +50,8 @@ ResearchAgent-LangChain是Python生态下基于LangChain框架的AIGC项目解�
 9. 更多特性敬请期待...
 
 ## 版本更新
-
+- 2025.08.06 新增PGVector向量库支持
+- 2025.08.01 本地知识库RAG支持
 - 2025.07.16 正式发布、公开仓库
 - 2025.04.12 项目启动
 
@@ -67,4 +68,5 @@ ResearchAgent-LangChain是Python生态下基于LangChain框架的AIGC项目解�
 
 - Github: https://github.com/tzarrb
 - 邮箱: tzarrb@gmail.com
+
 
