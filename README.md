@@ -40,7 +40,7 @@ ResearchAgent-LangChain是Python生态下基于LangChain框架的AIGC项目解�
 ## 功能特性
 
 1. 多模态：支持集成国内外数十家AI大模型，可动态切换和配置
-2. 动态配置：支持Nacos动态配置大模型参数、Key等信息，无感刷新、无需每次重启服务
+2. 动态配置：支持Pydantic+YAML动态配置，无感刷新、无需每次重启服务
 3. 知识库：支持向量化知识库文档，定制化Prompt对话场景
 4. 高级RAG：支持Embedding模型，从知识库中精确搜索；集成Web Search等RAG插件
 5. 多Agent：支持多Agent路由架构，支持Agent间的协同工作
@@ -67,3 +67,4 @@ ResearchAgent-LangChain是Python生态下基于LangChain框架的AIGC项目解�
 
 - Github: https://github.com/tzarrb
 - 邮箱: tzarrb@gmail.com
+
