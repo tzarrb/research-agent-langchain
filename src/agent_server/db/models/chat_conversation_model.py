@@ -1,18 +1,18 @@
 from sqlalchemy import JSON, Column, DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import BaseModel
+from .base import BaseEntity
 from .mixin import DateTimeMixin
 
 
-class ChatConversationModel(BaseModel, DateTimeMixin):
+class ChatConversation(BaseEntity, DateTimeMixin):
     """
     对话记录模型
     """
 
-    __tablename__ = "cht_conversation"
+    __tablename__ = "chat_conversation"
     name: Mapped[str] = mapped_column(String(50), comment="对话框名称")
-    chat_type: Mapped[str] = mapped_column(String(50), comment="聊天类型")
+    chat_type: Mapped[str] = mapped_column(String(50), default="", comment="聊天类型")
 
     def __repr__(self):
-        return f"<Conversation(id='{self.id}', name='{self.name}', chat_type='{self.chat_type}', create_time='{self.create_time}')>"
+        return f"<Conversation(id='{self.id}', name='{self.name}', chat_type='{self.chat_type}', updated_time='{self.updated_time}', created_time='{self.created_time}')>"

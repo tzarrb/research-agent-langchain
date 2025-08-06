@@ -45,7 +45,7 @@ export default {
         formData.append('file', this.selectedFile);
 
         // 文件上传
-        const response = await axios.post('http://localhost:18080/research-agent/ai/vector/upload', formData, {
+        const response = await axios.post('http://localhost:18081/api/rag/upload', formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }

@@ -42,8 +42,8 @@ def get_default_embedding():
 
 """获取模型配置信息"""
 def get_model_info(
-        model_name: str = "",
-        platform_type: str = "",
+        model_name: str,
+        platform_type: str = None,
         multiple: bool = False
 ) -> t.Any:
     """

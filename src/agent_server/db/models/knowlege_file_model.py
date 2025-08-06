@@ -1,11 +1,11 @@
 from sqlalchemy import JSON, Boolean, Column, DateTime, Float, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import BaseModel
+from .base import BaseEntity
 from .mixin import DateTimeMixin
 
 
-class KnowledgeFileModel(BaseModel, DateTimeMixin):
+class KnowledgeFile(BaseEntity, DateTimeMixin):
     """
     知识文件模型
     """
@@ -13,6 +13,7 @@ class KnowledgeFileModel(BaseModel, DateTimeMixin):
     __tablename__ = "knowledge_file"
     file_name: Mapped[str] = mapped_column(String(255), comment="文件名")
     file_ext: Mapped[str] = mapped_column(String(10), comment="文件扩展名")
+    kb_id: Mapped[int] = mapped_column(Integer, index=True, comment="所属知识库ID")
     kb_name: Mapped[str] = mapped_column(String(50), comment="所属知识库名称")
     document_loader_name: Mapped[str] = mapped_column(String(50), comment="文档加载器名称")
     text_splitter_name: Mapped[str] = mapped_column(String(50), comment="文本分割器名称")
@@ -23,19 +24,25 @@ class KnowledgeFileModel(BaseModel, DateTimeMixin):
     docs_count: Mapped[int] = mapped_column(Integer, default=0, comment="切分文档数量")
 
     def __repr__(self):
-        return f"<KnowledgeFile(id='{self.id}', file_name='{self.file_name}', file_ext='{self.file_ext}', kb_name='{self.kb_name}', document_loader_name='{self.document_loader_name}', text_splitter_name='{self.text_splitter_name}', file_version='{self.file_version}', create_time='{self.create_time}')>"
+        return f"<KnowledgeFile(id='{self.id}', file_name='{self.file_name}', file_ext='{self.file_ext}', kb_id='{self.kb_id}', kb_name='{self.kb_name}', \
+            document_loader_name='{self.document_loader_name}', text_splitter_name='{self.text_splitter_name}', file_version='{self.file_version}', \
+            created_time='{self.created_time}', updated_time='{self.updated_time}')>"
 
 
-class FileDocModel(BaseModel):
+
+class FileDoc(BaseEntity):
     """
     文件-向量库文档模型
     """
 
     __tablename__ = "file_doc"
+    kb_id: Mapped[int] = mapped_column(Integer, index=True, comment="知识库ID")
     kb_name: Mapped[str] = mapped_column(String(50), comment="知识库名称")
+    file_id: Mapped[int] = mapped_column(Integer, index=True, comment="文件ID")
     file_name: Mapped[str] = mapped_column(String(255), comment="文件名称")
     doc_id: Mapped[str] = mapped_column(String(50), comment="向量库文档ID")
     meta_data: Mapped[dict] = mapped_column(JSON, default={})
 
     def __repr__(self):
-        return f"<FileDoc(id='{self.id}', kb_name='{self.kb_name}', file_name='{self.file_name}', doc_id='{self.doc_id}', metadata='{self.meta_data}')>"
+        return f"<FileDoc(id='{self.id}', kb_id='{self.kb_id}', kb_name='{self.kb_name}', file_id='{self.file_id}', file_name='{self.file_name}', \
+            doc_id='{self.doc_id}', metadata='{self.meta_data}')>"

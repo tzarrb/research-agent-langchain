@@ -25,6 +25,8 @@ from contextlib import asynccontextmanager
 from agent_server.app.chat.chat_service import chat_async
 from agent_server.api.v1.chat_routes import router as chat_router
 from agent_server.api.v1.prompt_routes import router as prompt_router
+from agent_server.api.v1.rag_routes import router as rag_router
+from agent_server.core.exceptions import global_exception_handler
 from agent_server.config.settings import Settings
 from agent_server.utils.log_util import (
     build_logger,
@@ -48,10 +50,10 @@ async def lifespan(app: FastAPI):
     Settings.set_auto_reload(True)
     await setup_database_connection()
     # [可选] 在开发时创建表
-    env = os.getenv("ENVIRONMENT", "dev")
-    if env == "dev":
-        #Settings.create_all_templates()
-        await create_db_and_tables()
+    # env = os.getenv("ENVIRONMENT", "dev")
+    # if env == "dev":
+        # Settings.create_all_templates()
+        # await create_db_and_tables()
 
     logger.info("🚀 应用启动，数据库已连接。")
     yield
@@ -94,6 +96,7 @@ def create_app(run_mode: str = "") -> FastAPI:
     # 注册路由
     app.include_router(chat_router, prefix="/api", tags=["Chat"])
     app.include_router(prompt_router, prefix="/api", tags=["Prompt"])
+    app.include_router(rag_router, prefix="/api", tags=["RAG"])
 
     # 媒体文件
     # app.mount("/media", StaticFiles(directory=Settings.basic_settings.MEDIA_PATH), name="media")
@@ -116,6 +119,10 @@ def create_app(run_mode: str = "") -> FastAPI:
         tags=["Other"],
         summary="要求llm模型补全(通过LLMChain)",
     )(chat_async)
+
+    # 注册全局异常处理器
+    # 这会捕获所有类型为 Exception 的异常
+    app.add_exception_handler(Exception, global_exception_handler)
 
     return app
 

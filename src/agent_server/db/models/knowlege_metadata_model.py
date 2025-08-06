@@ -1,11 +1,11 @@
 from sqlalchemy import JSON, Boolean, Column, DateTime, Float, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import BaseModel
+from .base import BaseEntity
 from .mixin import DateTimeMixin
 
 
-class SummaryChunkModel(BaseModel, DateTimeMixin):
+class SummaryChunk(BaseEntity, DateTimeMixin):
     """
     chunk summary模型，用于存储file_doc中每个doc_id的chunk 片段，
     数据来源:
@@ -19,6 +19,7 @@ class SummaryChunkModel(BaseModel, DateTimeMixin):
     """
 
     __tablename__ = "summary_chunk"
+    kb_id: Mapped[int] = mapped_column(Integer, index=True, comment="知识库ID")
     kb_name: Mapped[str] = mapped_column(String(50), comment="知识库名称")
     summary_context: Mapped[str] = mapped_column(String(255), comment="总结文本")
     summary_id: Mapped[str] = mapped_column(String(255), comment="总结矢量id")
@@ -27,6 +28,6 @@ class SummaryChunkModel(BaseModel, DateTimeMixin):
 
     def __repr__(self):
         return (
-            f"<SummaryChunk(id='{self.id}', kb_name='{self.kb_name}', summary_context='{self.summary_context}',"
-            f" doc_ids='{self.doc_ids}', metadata='{self.metadata}')>"
+            f"<SummaryChunk(id='{self.id}', kb_id='{self.kb_id}', kb_name='{self.kb_name}', summary_context='{self.summary_context}', summary_id='{self.summary_id}',"
+            f" doc_ids='{self.doc_ids}', metadata='{self.metadata}', created_time='{self.created_time}', updated_time='{self.updated_time}')>"
         )

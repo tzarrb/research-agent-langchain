@@ -547,7 +547,7 @@ function sendSseRequest() {
       'conversation_id': conversantId.value
     },
     body: JSON.stringify({
-      input: encodeURIComponent(message),
+      input: message,
       enableLocal: isLocal.value,
       enableWeb: isWeb.value,
       enableThink: isThink.value,
@@ -581,7 +581,7 @@ const refreshSseRequest = async () => {
       'conversation_id': conversantId.value
     },
     body: JSON.stringify({
-      input: encodeURIComponent(inputValue.value),
+      input: inputValue.value,
       enableLocal: isLocal.value,
       enableWeb: isWeb.value,
       enableThink: isThink.value,

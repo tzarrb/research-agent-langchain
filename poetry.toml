@@ -15,7 +15,7 @@ package-mode = false
 
 # --- 依赖管理 ---
 [tool.poetry.dependencies]
-python = ">=3.10,<3.13,!=3.9.7"
+python = ">=3.10,<3.13"
 langchain = "^0.3.0"
 fastapi = "^0.112.2"
 uvicorn = "^0.35.0"

@@ -15,7 +15,7 @@ from agent_server import __version__
 
 # 数据目录，必须通过环境变量设置。如未设置则自动使用当前目录。
 ROOT = Path(os.environ.get("RESEARCHAGENT_LANGCHAIN_ROOT", ".")).resolve()
-AGENT_ROOT = Path(os.environ.get("RESEARCHAGENT_LANGCHAIN_AGENT_ROOT", "./src/researchagent_server/")).resolve()
+AGENT_ROOT = Path(os.environ.get("RESEARCHAGENT_LANGCHAIN_AGENT_ROOT", "./src/agent_server/")).resolve()
 print(f"ROOT: {AGENT_ROOT}, AGENT_ROOT: {AGENT_ROOT}")
 
 
@@ -36,6 +36,13 @@ class BasicSettings(BaseFileSettings):
 
     HTTPX_DEFAULT_TIMEOUT: float = 300
     """httpx 请求默认超时时间（秒）。如果加载模型或对话较慢，出现超时错误，可以适当加大该值。"""
+
+    # redis 配置
+    REDIS_URL: str = "redis://localhost:6379/0" # 密码redis://:123456@localhost:6379/0
+    # Redis 前缀
+    REDIS_PREFIX: str = "researchagent-lang:"
+    # Redis 前缀 - 会话消息存储
+    REDIS_PREFIX_CHAT_MEMORY: str = REDIS_PREFIX + "chat:memory:"
 
     # 使用 @computed_field，可以在模型内部根据其他字段动态生成新字段
     # 这比在模型外部手动拼接字符串要优雅得多。
@@ -90,10 +97,18 @@ class BasicSettings(BaseFileSettings):
 
     # @computed_field
     @cached_property
-    def BASE_TEMP_DIR(self) -> Path:
+    def TEMP_PATH(self) -> Path:
         """临时文件目录，主要用于文件对话"""
         p = self.DATA_PATH / "temp"
+        (p / "files").mkdir(parents=True, exist_ok=True)
         (p / "openai_files").mkdir(parents=True, exist_ok=True)
+        return p
+    
+    @cached_property
+    def TEMP_FILE_PATH(self) -> Path:
+        """临时文件目录"""
+        p = self.TEMP_PATH / "files"
+        p.mkdir(parents=True, exist_ok=True)
         return p
 
     KN_ROOT_PATH: str = str(AGENT_ROOT / "data/knowledge")
@@ -226,7 +241,7 @@ class ModelSettings(BaseFileSettings):
             "llm_model": {
                 "platform":"",
                 "model": "",
-                "temperature": 0.9,
+                "temperature": 0.9,  # 随机性：0.0（最确定）–1.0（最随机）
                 "max_tokens": 4096,
                 "history_len": 10,
                 "prompt_name": "default",
@@ -701,9 +716,9 @@ class KNSettings(BaseFileSettings):
 
     VECTOR_SEARCH_TOP_K: int = 3 # TODO: 与 tool 配置项重复
     """知识库匹配向量数量"""
-
-    SCORE_THRESHOLD: float = 2.0
-    """知识库匹配相关度阈值，取值范围在0-2之间，SCORE越小，相关度越高，取到2相当于不筛选，建议设置在0.5左右"""
+    
+    VECTOR_SEARCH_SCORE_THRESHOLD: float = 0.5
+    """知识库匹配向量相关度阈值，取值范围在0-2之间，SCORE越小，相关度越高，取到2相当于不筛选，建议设置在0.5左右"""
 
     DEFAULT_SEARCH_ENGINE: t.Literal["bing", "baidu", "tavily"] = "tavily"
     """默认搜索引擎"""
@@ -770,6 +785,14 @@ class KNSettings(BaseFileSettings):
         }
     """可选向量库类型及对应配置"""
 
+    """
+    # 可选的文本分割器配置
+    # 目前支持的文本分割器有：ChineseRecursiveTextSplitter, SpacyTextSplitter, RecursiveCharacterTextSplitter, MarkdownHeaderTextSplitter
+    # 其中ChineseRecursiveTextSplitter使用了中文分词器，SpacyTextSplitter使用了Spacy分词器，
+    # RecursiveCharacterTextSplitter使用了tiktoken分词器，MarkdownHeaderTextSplitter使用了Markdown标题分割器
+    # TextSplitter配置项，如果你不明白其中的含义，就不要修改。
+    # source 如果选择tiktoken则使用openai的方法 "huggingface"
+    """
     TEXT_SPLITTER: dict[str, dict[str, t.Any]] = {
             "ChineseRecursiveTextSplitter": {
                 "source": "",
@@ -791,11 +814,14 @@ class KNSettings(BaseFileSettings):
                     ("####", "head4"),
                 ]
             },
+            "HTMLHeaderTextSplitter": {
+                "headers_to_split_on": [
+                    ("h1", "Header 1"),
+                    ("h2", "Header 2"),
+                    ("h3", "Header 3"),
+                ]
+            },
         }
-    """
-    TextSplitter配置项，如果你不明白其中的含义，就不要修改。
-    source 如果选择tiktoken则使用openai的方法 "huggingface"
-    """
 
     TEXT_SPLITTER_NAME: str = "ChineseRecursiveTextSplitter"
     """TEXT_SPLITTER 名称"""
