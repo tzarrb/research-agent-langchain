@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Boolean, Column, DateTime, Float, Integer, String, func
+from sqlalchemy import JSON, Boolean, Column, DateTime, Float, Integer,BigInteger, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import BaseEntity
@@ -19,7 +19,7 @@ class SummaryChunk(BaseEntity, DateTimeMixin):
     """
 
     __tablename__ = "summary_chunk"
-    kb_id: Mapped[int] = mapped_column(Integer, index=True, comment="知识库ID")
+    kb_id: Mapped[int] = mapped_column(BigInteger, index=True, comment="知识库ID")
     kb_name: Mapped[str] = mapped_column(String(50), comment="知识库名称")
     summary_context: Mapped[str] = mapped_column(String(255), comment="总结文本")
     summary_id: Mapped[str] = mapped_column(String(255), comment="总结矢量id")

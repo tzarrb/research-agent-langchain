@@ -6,7 +6,7 @@ from fastapi import FastAPI, APIRouter, Request, UploadFile, File, Form
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-router = APIRouter(prefix="/upload", tags=["文件上传"])
+router = APIRouter(prefix="/upload", tags=["Upload文件上传"])
 
 templates = Jinja2Templates(directory="templates")
 
