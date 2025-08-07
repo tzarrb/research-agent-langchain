@@ -10,13 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine, async_sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError, DisconnectionError
 
-from .base import (
-    _SyncSessionFactory,
-    _AsyncSessionFactory,
-    _async_engine,
-    get_async_db,
-)
-
 from ..utils.log_util import build_logger
 from ..config.settings import Settings
 
@@ -94,7 +87,7 @@ session_monitor = SessionMonitor()
 async def async_session_scope(
     auto_commit: Optional[bool] = None,
     auto_rollback: Optional[bool] = None,
-    enable_monitoring: Optional[bool] = None
+    enable_monitoring: Optional[bool] = None,
 ) -> AsyncGenerator[AsyncSession, None]:
     """
     异步Session上下文管理器
@@ -115,17 +108,21 @@ async def async_session_scope(
     _auto_commit = auto_commit if auto_commit is not None else session_config.auto_commit
     _auto_rollback = auto_rollback if auto_rollback is not None else session_config.auto_rollback
     _enable_monitoring = enable_monitoring if enable_monitoring is not None else session_config.enable_monitoring
+
+    # 动态获取会话工厂
+    from .base import get_async_session_factory
+    session_factory = get_async_session_factory()
     
-    if _AsyncSessionFactory is None:
-        raise RuntimeError("数据库会话工厂未初始化！请先调用 setup_database_connection()")
+    if session_factory is None:
+        raise RuntimeError("数据库异步会话工厂未初始化！请先调用 setup_database_connection()")
     
     session = None
     start_time = time.time()
     
     try:
         # 创建session
-        session = _AsyncSessionFactory()
-        
+        session = session_factory()
+
         if _enable_monitoring:
             session_monitor.session_created()
             session_monitor.transaction_started()
@@ -196,15 +193,19 @@ def session_scope(
     _auto_rollback = auto_rollback if auto_rollback is not None else session_config.auto_rollback
     _enable_monitoring = enable_monitoring if enable_monitoring is not None else session_config.enable_monitoring
     
-    if _SyncSessionFactory is None:
-        raise RuntimeError("数据库会话工厂未初始化！请先调用 setup_database_connection()")
+    # 动态获取会话工厂
+    from .base import get_sync_session_factory
+    session_factory = get_sync_session_factory()
+
+    if session_factory is None:
+        raise RuntimeError("数据库同步会话工厂未初始化！请先调用 setup_database_connection()")
     
     session = None
     start_time = time.time()
     
     try:
         # 创建session
-        session = _SyncSessionFactory()
+        session = session_factory()
         
         if _enable_monitoring:
             session_monitor.session_created()
@@ -284,7 +285,7 @@ def async_with_session(
     return decorator
 
 
-def with_session(
+def sync_with_session(
     auto_commit: Optional[bool] = True,
     auto_rollback: Optional[bool] = True,
     enable_monitoring: Optional[bool] = True

@@ -18,6 +18,6 @@ from sqlalchemy.orm import Session, DeclarativeBase, Mapped, mapped_column
 # 基类，我们所有的 ORM 模型都需要继承它
 class BaseEntity(DeclarativeBase):
 
-    id: MappedColumn[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True, comment="主键ID")
+    id: MappedColumn[int] = mapped_column(BigInteger, primary_key=True, index=True, autoincrement=True, comment="主键ID")
     created_by: MappedColumn[str | None] = mapped_column(String(50), default=None, comment="创建者")
     updated_by: MappedColumn[str | None] = mapped_column(String(50), default=None, comment="更新者")

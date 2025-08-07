@@ -19,7 +19,7 @@ loader_mapping = {
     ".html": lambda path: BSHTMLLoader(path, open_encoding='utf-8')
 }
 
-router = APIRouter(prefix="/rag", tags=["本地搜索增强生成（RAG）"])
+router = APIRouter(prefix="/rag", tags=["RAG检索增强生成"])
 
 @router.post("/upload", summary="上传文件并保存到向量存储")
 async def upload_file(request: Request, file: UploadFile = File(...)):

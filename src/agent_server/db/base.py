@@ -1,3 +1,6 @@
+from sqlalchemy.ext.asyncio.session import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio.session import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio.session import AsyncSession, async_sessionmaker
 from sqlalchemy.orm.session import Session
 from typing import Any, Generator, Optional, AsyncGenerator
 import json
@@ -122,6 +125,14 @@ async def close_async_session_factory():
 
 
 # --- 3. 依赖注入魔法：获取会话 ---
+def get_async_session_factory() -> Optional[async_sessionmaker[AsyncSession]]:
+    """获取异步会话工厂"""
+    return _AsyncSessionFactory
+
+def get_sync_session_factory() -> Optional[sessionmaker[Session]]:
+    """获取同步会话工厂"""
+    return _SyncSessionFactory
+
 # 获取异步会话连接
 def get_sync_db()  -> Generator[Session, Any, None]:
     """
@@ -142,7 +153,7 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
     FastAPI 依赖注入函数，为每个请求提供一个独立的数据库会话。
     """
     if _AsyncSessionFactory is None:
-        raise RuntimeError("数据库会话工厂未初始化！")
+        raise RuntimeError("数据库异步会话工厂未初始化！")
 
     # 从会话工厂中创建一个新的会话
     async with _AsyncSessionFactory() as session:
@@ -168,3 +179,15 @@ async def create_db_and_tables():
         await conn.run_sync(BaseEntity.metadata.create_all)
     logger.info("数据库表已成功同步/创建。")
     
+async def check_database_health() -> bool:
+    """检查数据库连接健康状态"""
+    try:
+        session_factory = get_async_session_factory()
+        if session_factory is None:
+            return False
+        async with session_factory() as session:
+            await session.execute(text("SELECT 1"))
+            return True
+    except Exception as e:
+        logger.error(f"数据库健康检查失败: {e}")
+        return False

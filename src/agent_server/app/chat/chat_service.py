@@ -6,7 +6,10 @@ import random
 import redis
 import html
 
+from fastapi import Depends
 from fastapi.responses import StreamingResponse, JSONResponse
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.callbacks import StdOutCallbackHandler
@@ -41,9 +44,10 @@ from agent_server.utils.id_util import id_generator
 from agent_server.schemas.chat.chat_request import ChatRequest
 from agent_server.app.rag.vector_store.base import VsServiceFactory, SupportedVSType
 
+from agent_server.schemas.chat.chat_conversation_schema import ChatConversationCreate
 from agent_server.db.models.chat_conversation_model import ChatConversation
 from agent_server.db.repository.chat_conversation_repository import chat_conversation_repository
-from agent_server.schemas.chat.chat_conversation_schema import ChatConversationCreate
+from agent_server.db.base import get_async_db, _AsyncSessionFactory
 
 logger = build_logger("chat-service")
 
@@ -212,19 +216,19 @@ async def chat_async(data: ChatRequest):
             response={"content":result, "conversation_id": conversation_id}
             yield json.dumps(response)
 
-        # await save_chat_conversation(input, int(conversation_id))
+        await save_chat_conversation(input, int(conversation_id))
     except Exception as e:
         # Handle errors appropriately
         logger.error(f"Error in chat processing: {html.escape(str(e))}")
         raise  # Or return a custom error response
 
 async def save_chat_conversation(input: str, conversation_id: int):
-    # chat_conversation = chat_conversation_repository.get(conversation_id)
-    # if chat_conversation:
-    #     return
+    chat_conversation = await chat_conversation_repository.get(id=conversation_id)
+    if chat_conversation:
+        return
     
-    chat_conversation = chat_conversation_repository.create(
-        ChatConversationCreate(
+    chat_conversation = await chat_conversation_repository.create(
+        obj_in = ChatConversationCreate(
             id=conversation_id,
             name=input,
             chat_type="general"

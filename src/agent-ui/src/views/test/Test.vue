@@ -217,7 +217,7 @@ import markdownItMermaid from '@jsonlee_12138/markdown-it-mermaid'
 // 这里是组件库内置的一个 代码高亮库 Prismjs，自定义的 hooks 例子。(仅供集成参考)代码地址：https://github.com/HeJiaYue520/Element-Plus-X/blob/main/packages/components/src/hooks/usePrism.ts
 import { usePrism } from 'vue-element-plus-x'
 // 这里可以引入 Prism 的核心样式，也可以自己引入其他第三方主题样式
-import 'vue-element-plus-x/styles/prism.min.css'
+// import 'vue-element-plus-x/styles/prism.min.css' // 这个路径不存在，暂时注释掉
 
 // 全局缓存
 import { useMainStore } from '@/store';

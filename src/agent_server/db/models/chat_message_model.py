@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Column, DateTime, Integer, String, func
+from sqlalchemy import JSON, BigInteger, Column, DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import BaseEntity
@@ -11,7 +11,7 @@ class ChatMessage(BaseEntity, DateTimeMixin):
     """
 
     __tablename__ = "chat_message"
-    conversation_id: Mapped[int] = mapped_column(Integer, index=True, comment="对话框ID")
+    conversation_id: Mapped[int] = mapped_column(BigInteger, index=True, comment="对话框ID")
     chat_type: Mapped[str] = mapped_column(String(50), default="", comment="聊天类型")
     question: Mapped[str] = mapped_column(String(4096), comment="用户问题")
     answer: Mapped[str] = mapped_column(String(4096), comment="模型回答")

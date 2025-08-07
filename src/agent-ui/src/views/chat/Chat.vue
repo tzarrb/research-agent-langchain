@@ -191,7 +191,7 @@ import markdownItMermaid from '@jsonlee_12138/markdown-it-mermaid'
 // 这里是组件库内置的一个 代码高亮库 Prismjs，自定义的 hooks 例子。(仅供集成参考)代码地址：https://github.com/HeJiaYue520/Element-Plus-X/blob/main/packages/components/src/hooks/usePrism.ts
 import { usePrism } from 'vue-element-plus-x'
 // 这里可以引入 Prism 的核心样式，也可以自己引入其他第三方主题样式
-import 'vue-element-plus-x/styles/prism.min.css'
+// import 'vue-element-plus-x/styles/prism.min.css' // 这个路径不存在，暂时注释掉
 
 // 全局缓存
 import { useMainStore } from '@/store';
@@ -483,7 +483,7 @@ const sseRequest = new XRequest({
       // 添加消息记录
       if (!conversationItems.value.some(item => item.key === conversantId.value)) {
         const message = inputValue.value.length > 20 ? `${inputValue.value.slice(0, 50)}...` : inputValue.value
-        conversationItems.value.push({
+        conversationItems.value.unshift({
           key: conversantId.value,
           label: message,
           disabled: false,
@@ -608,6 +608,29 @@ const copyMessage = async (content) => {
   }
 }
 
+// 获取会话列表
+const fetchConversations = async (page_num, page_size) => {
+  try {
+    const response = await fetch(`http://localhost:18081/api/conversation/list?page_num=${page_num}&page_size=${page_size}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'conversation_id': conversantId.value
+      }
+    })
+    if (!response.ok) throw new Error('网络错误')
+
+    const data = await response.json()
+    conversationItems.value = data.map((item, index) => ({
+      key: item.id || `conversation-${index}`,
+      label: item.name || `会话 ${index + 1}`,
+      disabled: false,
+    }))
+  } catch (error) {
+    console.error('获取会话列表失败:', error)
+  }
+}
+
 // 滚动到消息容器底部
 const scrollToBottom = async () => {
   await nextTick()
@@ -618,6 +641,7 @@ const scrollToBottom = async () => {
 
 onMounted(() => {
   scrollToBottom()
+  fetchConversations(1, 20) // 获取第一页的会话列表
 })
 </script>
 

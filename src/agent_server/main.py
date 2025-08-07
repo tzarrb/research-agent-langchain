@@ -5,6 +5,7 @@ import os
 import argparse
 import logging
 import logging.config
+from turtle import up
 
 from dotenv import load_dotenv
 
@@ -26,6 +27,8 @@ from agent_server.app.chat.chat_service import chat_async
 from agent_server.api.v1.chat_routes import router as chat_router
 from agent_server.api.v1.prompt_routes import router as prompt_router
 from agent_server.api.v1.rag_routes import router as rag_router
+from agent_server.api.v1.upload_routes import router as upload_router
+from agent_server.api.v1.chat_conversation_routes import router as chat_conversation_router
 from agent_server.core.exceptions import global_exception_handler
 from agent_server.config.settings import Settings
 from agent_server.utils.log_util import (
@@ -93,10 +96,12 @@ def create_app(run_mode: str = "") -> FastAPI:
         )
 
     
-    # 注册路由
-    app.include_router(chat_router, prefix="/api", tags=["Chat"])
-    app.include_router(prompt_router, prefix="/api", tags=["Prompt"])
-    app.include_router(rag_router, prefix="/api", tags=["RAG"])
+    # 注册路由 
+    app.include_router(chat_router, prefix="/api", tags=["Chat对话"])
+    app.include_router(prompt_router, prefix="/api", tags=["Prompt提示词"])
+    app.include_router(rag_router, prefix="/api", tags=["RAG检索增强生成"])
+    app.include_router(upload_router, prefix="/api", tags=["Upload文件上传"])
+    app.include_router(chat_conversation_router, prefix="/api", tags=["Chat会话消息"])
 
     # 媒体文件
     # app.mount("/media", StaticFiles(directory=Settings.basic_settings.MEDIA_PATH), name="media")
