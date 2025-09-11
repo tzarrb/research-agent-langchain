@@ -133,7 +133,7 @@ def get_sync_session_factory() -> Optional[sessionmaker[Session]]:
     """获取同步会话工厂"""
     return _SyncSessionFactory
 
-# 获取异步会话连接
+# 获取同步会话连接
 def get_sync_db()  -> Generator[Session, Any, None]:
     """
     FastAPI 依赖注入函数，为每个请求提供一个独立的数据库会话。

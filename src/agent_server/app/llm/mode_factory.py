@@ -8,7 +8,7 @@ import time
 from dotenv import load_dotenv
 
 from langchain.chat_models import init_chat_model
-# from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_deepseek import ChatDeepSeek
 from langchain_core.callbacks import Callbacks
@@ -16,7 +16,7 @@ from langchain_core.embeddings import Embeddings
 from langchain_community.llms.tongyi import Tongyi
 from langchain_community.embeddings import DashScopeEmbeddings
 
-from FlagEmbedding import BGEM3FlagModel
+# from FlagEmbedding import BGEM3FlagModel
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
 
@@ -56,6 +56,19 @@ class ModelFactory:
             raise ValueError(f"Unsupported model provider: {model_provider} or model name: {model_name}")
 
         llm_config = Settings.model_settings.LLM_MODEL_CONFIG.get("llm_model", {})
+        chat_model = ChatOpenAI(
+                    api_key=SecretStr(model_info.get("api_key")),
+                    base_url=model_info.get("api_base_url"),
+                    model=model_name,
+                    streaming=streaming,
+                    temperature=llm_config.get("temperature", 0.5),
+                    top_p=llm_config.get("top_p", 0.5),
+                    # max_tokens=llm_config.get("max_tokens", 1024),
+                    # max_retries=llm_config.get("max_retries", 2),
+                    # timeout=llm_config.get("timeout", 30),
+                    callbacks=callbacks,
+                    )
+        
         if model_provider == "openai":
             chat_model = ChatOpenAI(
                     api_key=SecretStr(model_info.get("api_key")),
@@ -63,29 +76,37 @@ class ModelFactory:
                     model=model_name,
                     streaming=streaming,
                     temperature=llm_config.get("temperature", 0.5),
+                    top_p=llm_config.get("top_p", 0.5),
                     callbacks=callbacks,
                     )
             return chat_model
+        if model_provider == "openrouter":
+            return chat_model
         if model_provider == "gemini":
-            # return init_chat_model(model_name, model_provider=model_provider)
+            # ChatGoogleGenerativeAI is not available, use init_chat_model instead
+            # chat_model = init_chat_model(
+            #     model=model_name,
+            #     model_provider=model_provider,
+            #     api_key=model_info.get("api_key"),
+            #     temperature=llm_config.get("temperature", 0.5),
+            #     max_tokens=llm_config.get("max_tokens", 4096),
+            #     max_retries=llm_config.get("max_retries", 2),
+            #     timeout=llm_config.get("timeout", 30),
+            #     streaming=streaming,
+            # )
             chat_model = ChatGoogleGenerativeAI(
-                    api_key=SecretStr(model_info.get("api_key")),
-                    model=model_name,
-                    streaming=streaming,
-                    temperature=llm_config.get("temperature", 0.5),
-                    max_tokens=llm_config.get("max_tokens", 4096),
-                    max_retries=llm_config.get("max_retries", 2),
-                    timeout=llm_config.get("timeout", 30),
-                    callbacks=callbacks,
-                )
+                model=model_name,
+                api_key=model_info.get("api_key"),
+                base_url=model_info.get("api_base_url"),
+                streaming=streaming,
+                temperature=llm_config.get("temperature", 0.5),
+                max_tokens=llm_config.get("max_tokens", 4096),
+                max_retries=llm_config.get("max_retries", 2),
+                timeout=llm_config.get("timeout", 30),
+                callbacks=callbacks,
+            )
             return chat_model
         elif model_provider == "deepseek":
-            # api_key  = os.getenv("DEEPSEEK_API_KEY")
-            # api_base = os.getenv("DEEPSEEK_API_BASE")
-            # if not api_key or not api_base:
-            #     raise EnvironmentError("请在 .env 中设置 DEEPSEEK_API_KEY 和 DEEPSEEK_API_BASE")
-
-            # 2. 初始化 DeepSeek 聊天模型
             # chat_model = init_chat_model(
             #     model=model_name, # deepseek-chat
             #     temperature=0.6,     # 随机性：0.0（最确定）–1.0（最随机）
@@ -106,19 +127,17 @@ class ModelFactory:
             )
             return chat_model
         elif model_provider == "dashscope":
-            chat_model = Tongyi(
-                model=model_name,
-                api_key=SecretStr(model_info.get("api_key")),
-                streaming=streaming,
-                temperature=llm_config.get("temperature", 0.5),
-                top_p=llm_config.get("top_p", 0.5),
-                max_tokens=llm_config.get("max_tokens", 4096),
-                max_retries=llm_config.get("max_retries", 2),
-                timeout=llm_config.get("timeout", 30),
-                callbacks=callbacks,
-            )
+            # chat_model = Tongyi(
+            #     model=model_name,
+            #     api_key=model_info.get("api_key"),
+            #     streaming=streaming,
+            #     top_p=llm_config.get("top_p", 0.5),
+            #     callbacks=callbacks,
+            # )
+            return chat_model
         else:
-            raise ValueError(f"Unsupported model provider: {model_provider}")
+            # raise ValueError(f"Unsupported model provider: {model_provider}")
+            return chat_model
 
 
     """
@@ -181,7 +200,7 @@ class ModelFactory:
     def check_embed_model(cls, embed_model: str = "") -> tuple[bool, str]:
         try:
             embed_model = embed_model or get_default_embedding()
-            embeddings = cls.get_embeddings(cls, embed_model=embed_model)
+            embeddings = cls.get_embeddings(embed_model=embed_model)
             if embeddings is None:
                 return False, f"Failed to create Embeddings for model: {embed_model}."
             embeddings.embed_query("this is a test")

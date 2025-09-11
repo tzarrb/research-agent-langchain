@@ -23,12 +23,9 @@ from starlette.responses import RedirectResponse
 
 from contextlib import asynccontextmanager
 
-from agent_server.app.chat.chat_service import chat_async
-from agent_server.api.v1.chat_routes import router as chat_router
-from agent_server.api.v1.prompt_routes import router as prompt_router
-from agent_server.api.v1.rag_routes import router as rag_router
-from agent_server.api.v1.upload_routes import router as upload_router
-from agent_server.api.v1.chat_conversation_routes import router as chat_conversation_router
+from agent_server.api import *
+from agent_server.api import routers
+from agent_server.app.service.chat_service import chat_async
 from agent_server.core.exceptions import global_exception_handler
 from agent_server.config.settings import Settings
 from agent_server.utils.log_util import (
@@ -44,6 +41,12 @@ from agent_server.db.base import (
 )
 
 logger = build_logger("main")
+
+# Langsmith 配置
+# LANGSMITH_TRACING = "true"
+# LANGSMITH_ENDPOINT = "https://api.smith.langchain.com"
+# LANGSMITH_API_KEY = Settings.basic_settings.LANGSMITH_KEY
+# LANGSMITH_PROJECT = Settings.basic_settings.project
 
 # 使用 lifespan 管理应用生命周期事件
 @asynccontextmanager
@@ -97,11 +100,15 @@ def create_app(run_mode: str = "") -> FastAPI:
 
     
     # 注册路由 
-    app.include_router(chat_router, prefix="/api", tags=["Chat对话"])
-    app.include_router(prompt_router, prefix="/api", tags=["Prompt提示词"])
-    app.include_router(rag_router, prefix="/api", tags=["RAG检索增强生成"])
-    app.include_router(upload_router, prefix="/api", tags=["Upload文件上传"])
-    app.include_router(chat_conversation_router, prefix="/api", tags=["Chat会话消息"])
+    # app.include_router(chat_router, prefix="/api", tags=["Chat对话"])
+    # app.include_router(agent_router, prefix="/api", tags=["Agent智能体"])
+    # app.include_router(prompt_router, prefix="/api", tags=["Prompt提示词"])
+    # app.include_router(rag_router, prefix="/api", tags=["RAG检索增强生成"])
+    # app.include_router(upload_router, prefix="/api", tags=["Upload文件上传"])
+    # app.include_router(chat_conversation_router, prefix="/api", tags=["Chat会话消息"])
+    
+    for r in routers:
+        app.include_router(r["router"], prefix=r["prefix"], tags=r["tags"])
 
     # 媒体文件
     # app.mount("/media", StaticFiles(directory=Settings.basic_settings.MEDIA_PATH), name="media")

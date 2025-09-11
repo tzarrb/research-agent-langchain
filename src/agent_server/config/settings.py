@@ -31,6 +31,9 @@ class BasicSettings(BaseFileSettings):
     version: str = __version__
     """生成该配置模板的项目代码版本，如这里的值与程序实际版本不一致，建议重建配置文件模板"""
 
+    project: str = "research-agent-langchain"
+    """项目名称"""
+
     log_verbose: bool = False
     """是否开启日志详细信息"""
 
@@ -43,6 +46,13 @@ class BasicSettings(BaseFileSettings):
     REDIS_PREFIX: str = "researchagent-lang:"
     # Redis 前缀 - 会话消息存储
     REDIS_PREFIX_CHAT_MEMORY: str = REDIS_PREFIX + "chat:memory:"
+    
+    # Langsmith API Key
+    LANGSMITH_KEY: str = "<your-api-key>"    
+
+    # 天气获取的配置
+    WEATHER_KEY: str = "<your-api-key>"
+    WEATHER_URL: str = "http://api.openweathermap.org/data/2.5/weather"
 
     # 使用 @computed_field，可以在模型内部根据其他字段动态生成新字段
     # 这比在模型外部手动拼接字符串要优雅得多。

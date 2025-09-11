@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, Request, Response, Body
 from fastapi.responses import Response
 
-from agent_server.app.chat.chat_conversation_service import ChatConversationService
+from agent_server.app.service.chat_conversation_service import ChatConversationService
 
 router = APIRouter(prefix="/conversation", tags=["Chat会话消息"])
 

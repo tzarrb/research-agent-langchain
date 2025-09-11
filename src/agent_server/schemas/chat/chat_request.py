@@ -8,7 +8,7 @@ class ChatRequest(BaseModel):
     conversation_id: str | None = Field(None, description="会话ID")
     model_provider: str | None = Field(None, description="模型提供商")
     model_name: str | None = Field(None, description="模型名称")
-    streaming: bool | None = Field(True, description="是否流式传输")
+    streaming: bool = Field(True, description="是否流式传输")
     enableLocal: bool | None = Field(False, description="是否启用本地知识库")
     enableWeb: bool | None = Field(False, description="是否启用Web搜索")
     enableThink: bool | None = Field(False, description="是否启用思考能力")

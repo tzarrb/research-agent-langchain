@@ -20,7 +20,6 @@ dependencies = [
     "langchain-postgres>=0.0.15",
     "langgraph>=0.2.67",
     "langgraph-sdk>=0.1.51",
-    "langgraph>=0.2.67",
     "langsmith>=0.4.5",
     "uvicorn>=0.35.0",
     "fastapi>=0.112.2",
@@ -53,8 +52,19 @@ agent-cli = "researchagent_server.cli:main"
 [project.urls]
 repository = "https://github.com/tzarrb/research-agent-lang.git"
 
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
 
 # --- 工具配置 (tool.*) ---
+# --- UV配置 --- 
+[[tool.uv.index]]
+url="https://pypi.tuna.tsinghua.edu.cn/simple"
+default=true
+
 # --- Poetry配置 --- 
 [tool.poetry]
 package-mode = false

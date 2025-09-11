@@ -4,7 +4,7 @@ from nltk import pr
 from fastapi import APIRouter, Request, Response, Body
 from fastapi.responses import StreamingResponse
 
-from agent_server.app.chat.chat_service import chat, chat_async
+from agent_server.app.service.chat_service import chat, chat_async
 from agent_server.schemas.chat.chat_request import ChatRequest
 from agent_server.utils.id_util import id_generator
 
