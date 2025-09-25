@@ -20,12 +20,13 @@ from fastapi import Body, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import RedirectResponse
+from fastapi_radar import Radar
 
 from contextlib import asynccontextmanager
 
 from agent_server.api import *
 from agent_server.api import routers
-from agent_server.app.service.chat_service import chat_async
+from agent_server.app.service.agent_service import async_chat
 from agent_server.core.exceptions import global_exception_handler
 from agent_server.config.settings import Settings
 from agent_server.utils.log_util import (
@@ -43,10 +44,10 @@ from agent_server.db.base import (
 logger = build_logger("main")
 
 # Langsmith 配置
-# LANGSMITH_TRACING = "true"
-# LANGSMITH_ENDPOINT = "https://api.smith.langchain.com"
-# LANGSMITH_API_KEY = Settings.basic_settings.LANGSMITH_KEY
-# LANGSMITH_PROJECT = Settings.basic_settings.project
+LANGSMITH_TRACING = "true"
+LANGSMITH_ENDPOINT = "https://eu.api.smith.langchain.com" 
+LANGSMITH_API_KEY = Settings.basic_settings.LANGSMITH_KEY
+LANGSMITH_PROJECT = Settings.basic_settings.project
 
 # 使用 lifespan 管理应用生命周期事件
 @asynccontextmanager
@@ -130,7 +131,7 @@ def create_app(run_mode: str = "") -> FastAPI:
         "/other/completion",
         tags=["Other"],
         summary="要求llm模型补全(通过LLMChain)",
-    )(chat_async)
+    )(async_chat)
 
     # 注册全局异常处理器
     # 这会捕获所有类型为 Exception 的异常
@@ -140,6 +141,11 @@ def create_app(run_mode: str = "") -> FastAPI:
 
 app = create_app()
 
+# 它会自动监控HTTP请求、异常和所有通过engine发出的SQL查询
+# 启动应用后，直接访问 http://localhost:18081/__radar/
+radar = Radar(app)
+# radar = Radar(app, db_engine=engine)
+radar.create_tables()  # 创建用于存储监控数据的表
 
 def run_api(**kwargs):
     logging_conf = get_config_dict(
@@ -175,6 +181,11 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=Settings.basic_settings.API_SERVER.get("port", 18081))
     parser.add_argument("--ssl_keyfile", type=str)
     parser.add_argument("--ssl_certfile", type=str)
+    parser.add_argument("--debug", action="store_true", help="是否启用调试模式")
+    parser.add_argument("--reload", action="store_true", help="是否启用代码热加载")
+    # parser.add_argument("--workers", type=int, default=1, help="工作进程数")
+    # parser.add_argument("--log_level", type=str, default="info", help="日志级别")
+    # parser.add_argument("--log_file", type=str, default="", help="日志文件路径")
     # 初始化消息
     args = parser.parse_args()
     args_dict = vars(args)

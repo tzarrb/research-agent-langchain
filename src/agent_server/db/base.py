@@ -93,7 +93,9 @@ async def setup_async_session_factory():
     
     # SessionFactory 是一个“会话的工厂”，配置一次，随处使用
     _AsyncSessionFactory = async_sessionmaker(
-        class_=AsyncSession, expire_on_commit=False, bind=_async_engine
+        class_=AsyncSession, 
+        bind=_async_engine, 
+        expire_on_commit=False
     )
     logger.info("异步数据库引擎和会话工厂已成功创建。")
     

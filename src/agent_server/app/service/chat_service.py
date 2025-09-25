@@ -9,14 +9,13 @@ import html
 # 将项目根目录添加到 sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-from fastapi import Depends
 from fastapi.responses import StreamingResponse, JSONResponse
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.callbacks import StdOutCallbackHandler
-from langchain.callbacks.streaming_aiter import AsyncIteratorCallbackHandler
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.callbacks import StdOutCallbackHandler
+from langchain_core.callbacks.streaming_aiter import AsyncIteratorCallbackHandler
 
 # 输出解析
 from langchain_core.output_parsers import StrOutputParser
@@ -30,11 +29,9 @@ from langchain_core.messages import HumanMessage
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.history_aware_retriever import create_history_aware_retriever # 历史感知检索器
-from langchain.schema.runnable import RunnablePassthrough
 
 # 历史会话记忆
 from langchain_community.chat_message_histories import RedisChatMessageHistory
-from langchain_core.memory import ConversationBufferWindowMemory
 from agent_server.app.memory.windowed_redis_history import WindowedRedisChatMessageHistory
 
 from agent_server.app.llm.mode_factory import ModelFactory
@@ -59,7 +56,7 @@ def chat(model_name: str, model_provider: str = "deepseek", input: str = ""):
     message = chat_model.invoke(input)
     return message
 
-async def chat_async(data: ChatRequest):
+async def async_chat(data: ChatRequest):
     model_provider = data.model_provider
     model_name = data.model_name
     streaming = data.streaming or True
@@ -169,6 +166,9 @@ async def chat_async(data: ChatRequest):
     config = {
         "configurable": {
             "conversation_id": conversation_id
+            # "rsa_model": "deepseek-chat",
+            # "rsa_model_provider": "deepseek",
+            # "rsa_temperature": 0.5,
         }
     }
 
@@ -182,7 +182,7 @@ async def chat_async(data: ChatRequest):
                 logger.info(f"conversation_id: {conversation_id}, chat stream: {html.escape(str(chunk))}")
                 print(chunk, end="", flush=True)
                 # response={"content":chunk, "conversation_id": conversation_id}    
-                     
+
                 if data.enableLocal:
                     # RAG链返回的是字典，包含answer和context
                     if isinstance(chunk, dict):
@@ -193,8 +193,20 @@ async def chat_async(data: ChatRequest):
                     # 普通对话链返回的是字符串
                     content = chunk if isinstance(chunk, str) else str(chunk)
 
+                # 添加调试日志
+                logger.info(f"原始内容: {repr(content)}")
+                logger.info(f"内容类型: {type(content)}")
+                
                 response = {"content": content, "conversation_id": conversation_id}
-                yield json.dumps(response)
+                
+                # 测试不同的 JSON 序列化方式
+                json_with_ensure_ascii_false = json.dumps(response, ensure_ascii=False)
+                json_with_ensure_ascii_true = json.dumps(response, ensure_ascii=True)
+                
+                logger.info(f"ensure_ascii=False: {json_with_ensure_ascii_false}")
+                logger.info(f"ensure_ascii=True: {json_with_ensure_ascii_true}")
+                
+                yield json.dumps(response, ensure_ascii=False)
         else:
             # Use async invocation with proper configuration
             result = await message_history_chain.ainvoke(
@@ -202,8 +214,26 @@ async def chat_async(data: ChatRequest):
                 config=config
             )
             logger.info(f"conversation_id: {conversation_id}, chat result: {result}")
-            response={"content":result, "conversation_id": conversation_id}
-            yield json.dumps(response)
+            
+            # 添加调试日志
+            if data.enableLocal:
+                content = result.get('answer') if isinstance(result, dict) else str(result)
+            else:
+                content = result if isinstance(result, str) else str(result)
+            
+            logger.info(f"非流式原始内容: {repr(content)}")
+            logger.info(f"非流式内容类型: {type(content)}")
+            
+            response={"content":content, "conversation_id": conversation_id}
+            
+            # 测试不同的 JSON 序列化方式
+            json_with_ensure_ascii_false = json.dumps(response, ensure_ascii=False)
+            json_with_ensure_ascii_true = json.dumps(response, ensure_ascii=True)
+            
+            logger.info(f"非流式 ensure_ascii=False: {json_with_ensure_ascii_false}")
+            logger.info(f"非流式 ensure_ascii=True: {json_with_ensure_ascii_true}")
+            
+            yield json.dumps(response, ensure_ascii=False)
 
         await save_chat_conversation(input, int(conversation_id))
     except Exception as e:

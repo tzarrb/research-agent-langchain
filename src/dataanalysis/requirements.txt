@@ -1,0 +1,14 @@
+python-dotenv
+langgraph>=0.6.7
+langchain-core>=0.3.72
+langchain-deepseek>=0.1.4
+langchain-tavily>=0.2.11
+langchain_mcp_adapters>=0.1.10
+langsmith>=0.4.30
+pydantic>=2.11.7
+matplotlib>=3.4.3
+seaborn>=0.13.2
+pandas>=2.2.2
+IPython>=8.27.0
+pymysql>=1.1.2
+uv

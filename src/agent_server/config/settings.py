@@ -14,9 +14,9 @@ from agent_server import __version__
 
 
 # 数据目录，必须通过环境变量设置。如未设置则自动使用当前目录。
-ROOT = Path(os.environ.get("RESEARCHAGENT_LANGCHAIN_ROOT", ".")).resolve()
+ROOT = Path(os.environ.get("RESEARCHAGENT_LANGCHAIN_ROOT", "./")).resolve()
 AGENT_ROOT = Path(os.environ.get("RESEARCHAGENT_LANGCHAIN_AGENT_ROOT", "./src/agent_server/")).resolve()
-print(f"ROOT: {AGENT_ROOT}, AGENT_ROOT: {AGENT_ROOT}")
+print(f"ROOT: {ROOT}, AGENT_ROOT: {AGENT_ROOT}")
 
 
 class BasicSettings(BaseFileSettings):
@@ -53,6 +53,14 @@ class BasicSettings(BaseFileSettings):
     # 天气获取的配置
     WEATHER_KEY: str = "<your-api-key>"
     WEATHER_URL: str = "http://api.openweathermap.org/data/2.5/weather"
+    # 心知天气API
+    WEATHER_SENIVERSE_KEY: str = "<your-api-key>"
+    WEATHER_SENIVERSE_URL: str = "https://api.seniverse.com/v3/weather/daily.json"
+
+    # Tavily 搜索配置
+    TAVILY_API_KEY: str = "<your-api-key>"
+    TAVILY_API_URL: str = "https://api.tavily.com/search"
+
 
     # 使用 @computed_field，可以在模型内部根据其他字段动态生成新字段
     # 这比在模型外部手动拼接字符串要优雅得多。
@@ -67,7 +75,7 @@ class BasicSettings(BaseFileSettings):
     @cached_property
     def DOC_PATH(self) -> Path:
         """服务文档根目录"""
-        p = AGENT_ROOT / "docs"
+        p = ROOT / "docs"
         return p
 
     # @computed_field
@@ -148,7 +156,7 @@ class BasicSettings(BaseFileSettings):
             self.DATA_PATH,
             self.MEDIA_PATH,
             self.LOG_PATH,
-            self.BASE_TEMP_DIR,
+            self.TEMP_FILE_PATH,
         ]:
             p.mkdir(parents=True, exist_ok=True)
         for n in ["image", "audio", "video"]:
@@ -206,14 +214,13 @@ class PlatformConfig(MyBaseModel):
     #     if not v or v == "":
     #         raise ValueError("API key不能为空")
     #     return v
- 
- 
+
 class ModelSettings(BaseFileSettings):
     """模型配置项"""
 
     model_config = SettingsConfigDict(yaml_file=AGENT_ROOT / "config/model_settings.yaml")
 
-    DEFAULT_LLM_PLATFORM: str = "deepseek"
+    DEFAULT_LLM_PLATFORM: str = "deepseek" #openai, anthropic, google_genai, ollama
     """默认 LLM 平台"""
 
     DEFAULT_LLM_MODEL: str = "deepseek-chat"
@@ -700,7 +707,6 @@ class PromptSettings(BaseFileSettings):
     }
     """后处理模板"""
 
-
 class KNSettings(BaseFileSettings):
     """知识库相关配置"""
 
@@ -839,15 +845,28 @@ class KNSettings(BaseFileSettings):
     EMBEDDING_KEYWORD_FILE: str = "embedding_keywords.txt"
     """Embedding模型定制词语的词表文件"""
 
-
 class DBSettings(BaseFileSettings):
     """数据库相关配置"""
     
     model_config = SettingsConfigDict(yaml_file=AGENT_ROOT / "config/db_settings.yaml")
     
     # SQLALCHEMY_DATABASE_URI:str = "sqlite:///" + str(AGENT_ROOT / "data/knowledge/info.db")
-    SQLALCHEMY_DATABASE_URI:str = "postgresql+asyncpg://root:123456@127.0.0.1:5433/researchagent"
+    SQLALCHEMY_DATABASE_URI: str = "postgresql+asyncpg://root:123456@127.0.0.1:5432/researchagent"
     """知识库信息数据库连接URI"""
+
+
+    # MySQL数据库连接URI
+    # SQLALCHEMY_DATABASE_URI: "mysql+aiomysql://root:123456@127.0.0.1:3306/researchagent"
+    MYSQL_HOST: str= "127.0.0.1"
+    """MySQL主机地址"""
+    MYSQL_PORT: int= 3306
+    """MySQL端口"""
+    MYSQL_USER: str= "root"
+    """MySQL用户名"""
+    MYSQL_PASSWORD: str= "123456"
+    """MySQL密码"""
+    MYSQL_DATABASE: str= "researchagent"
+    """MySQL数据库名"""
 
     POOL_SIZE: int = 10
     """数据库连接池大小"""

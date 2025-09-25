@@ -1,12 +1,16 @@
 import uuid
-from nltk import pr
+import asyncio
 
 from fastapi import APIRouter, Request, Response, Body
 from fastapi.responses import StreamingResponse
 
-from agent_server.app.service.chat_service import chat, chat_async
+from agent_server.app.service.agent_service import async_chat
+# from agent_server.app.agent.basic_agent import async_chat, async_chat_agent
 from agent_server.schemas.chat.chat_request import ChatRequest
 from agent_server.utils.id_util import id_generator
+from agent_server.utils.log_util import build_logger
+
+logger = build_logger("chat-routes")
 
 router = APIRouter(prefix="/chat", tags=["Chat对话"])
 
@@ -25,12 +29,25 @@ async def chat_completions(request: Request, response: Response, data: ChatReque
     headers = {"conversation_id": conversation_id}
     response.headers.update(headers)
     
-    result_generator = chat_async(data)
+    result_generator = async_chat(data)
     
     if streaming:
         # 流式输出
-        return StreamingResponse(result_generator, media_type="text/event-stream", headers=headers)
+        # 创建自定义的流式响应生成器
+        # async def streaming_generator():
+        #     async for chunk in result_generator:
+        #         yield chunk
+        #         # 强制立即刷新
+        #         await asyncio.sleep(0)
+        
+        return StreamingResponse(
+            result_generator,
+            media_type="text/event-stream",
+            headers=headers,
+            background=None  # 禁用缓冲，防止后台任务缓冲数据
+        )
     else:
         # 非流式，获取结果
         result = await anext(result_generator)
+        logger.debug(f"Non-Streaming response result:{result}")
         return result

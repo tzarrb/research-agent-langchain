@@ -1,4 +1,5 @@
 
+import asyncio
 import os
 import sys
 import requests
@@ -47,9 +48,9 @@ class WeatherTool(BaseTool):
     
     async def _arun(self, city: str) -> str:
         """异步运行（暂时使用同步实现）"""
-        return self._run(city)
-    
-    
+        return await asyncio.to_thread(self._run, city)
+
+
 if __name__ == "__main__":
     weather_tool = WeatherTool()
     result = weather_tool._run("杭州")

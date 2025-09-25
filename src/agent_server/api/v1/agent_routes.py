@@ -4,9 +4,10 @@ from nltk import pr
 from fastapi import APIRouter, Request, Response, Body
 from fastapi.responses import StreamingResponse
 
-from agent_server.app.agent.calculator_agent import calculator_run
-from agent_server.schemas.chat.chat_request import ChatRequest
 from agent_server.utils.id_util import id_generator
+from agent_server.schemas.chat.chat_request import ChatRequest
+# from agent_server.app.agent.calculator_agent import calculator_run
+from agent_server.app.agent.research_assistant_agent import build_agent, run_research_assistant
 
 router = APIRouter(prefix="/agent", tags=["Agent智能体"])
 
@@ -25,12 +26,20 @@ async def calculator(request: Request, response: Response, data: ChatRequest):
     headers = {"conversation_id": conversation_id}
     response.headers.update(headers)
     
-    result_generator = calculator_run(data)
+    # result_generator = calculator_run(data)
+    result_generator = "calculator_run not implemented"
     
     if streaming:
         # 流式输出
         return StreamingResponse(result_generator, media_type="text/event-stream", headers=headers)
     else:
         # 非流式，获取结果
-        result = await anext(result_generator)
-        return result
+        # result = await anext(result_generator)
+        # return result
+        ...
+        
+
+@router.get("/research", summary="研究员智能体")
+async def research(topic: str):
+    result = run_research_assistant(topic)
+    return result

@@ -12,5 +12,6 @@ class ChatRequest(BaseModel):
     enableLocal: bool | None = Field(False, description="是否启用本地知识库")
     enableWeb: bool | None = Field(False, description="是否启用Web搜索")
     enableThink: bool | None = Field(False, description="是否启用思考能力")
+    system: str | None = Field(None, description="系统提示")
     input: str = Field(..., description="用户输入")  # type: ignore
     

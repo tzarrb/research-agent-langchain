@@ -187,6 +187,8 @@ import { ref, onMounted, nextTick, computed } from 'vue'
 import {ElMessage} from "element-plus";
 import { useSend, XRequest } from 'vue-element-plus-x';
 
+import hookFetch from 'hook-fetch';
+
 import markdownItMermaid from '@jsonlee_12138/markdown-it-mermaid'
 // 这里是组件库内置的一个 代码高亮库 Prismjs，自定义的 hooks 例子。(仅供集成参考)代码地址：https://github.com/HeJiaYue520/Element-Plus-X/blob/main/packages/components/src/hooks/usePrism.ts
 import { usePrism } from 'vue-element-plus-x'
@@ -436,7 +438,7 @@ const refreshMessage = async () => {
 
 // Element X SSE 请求 ===============================================================================================
 const sseRequest = new XRequest({
-  baseURL: 'http://localhost:18081/api',
+  baseURL: 'http://localhost:18081/v1',
   type: 'fetch',
   transformer: (e) => {
     console.log('transformer:', e)
@@ -514,6 +516,8 @@ const sseRequest = new XRequest({
     isLoad.value = false
     // AI消息流式加载结束，done设为true
     messages.value[messages.value.length - 1].done = true
+    messages.value[messages.value.length - 1].loading = false
+    
     if (!messages.value[messages.value.length - 1].error) {
       //当content中出现"错误"，"失败"等字符串时，按错误处理
       if (messages.value[messages.value.length - 1].content.includes('错误')
