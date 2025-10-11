@@ -1,5 +1,5 @@
 [project]
-name = "research-agent-lang"
+name = "research-agent"
 version = "0.1.0"
 description = "Python生态下基于LangChain框架的AIGC项目解决方案,快速构建企业级Agent智能体"
 authors = [
@@ -10,17 +10,21 @@ readme = "README.md"
 requires-python = ">=3.12,<4.0"
 #  --- 核心依赖 --- 
 dependencies = [
-    "langchain>=0.3.25",
+    "langchain>=0.3.26",
     "langchain-core>=0.3.68",
-    "langchain-community>=0.3.12",
+    "langchain-community>=0.3.27",
     "langchain-openai>=0.3.12",
-    "langchain-deepseek>=0.1.3,<2.0.0",
+    "langchain-deepseek>=0.1.3",
     "langchain-text-splitters>=0.3.8",
     "langchain-experimental>=0.3.4",
     "langchain-postgres>=0.0.15",
-    "langgraph>=0.2.67",
-    "langgraph-sdk>=0.1.51",
+    "langchain-tavily>=0.2.11",
+    "langgraph>=0.6.0",
+    "langgraph-sdk>=0.2.0",
+    "langgraph-checkpoint-postgres>=2.0.25",
+    "langgraph-checkpoint-redis>=0.1.2",
     "langsmith>=0.4.5",
+    "langmem>=0.0.29",
     "uvicorn>=0.35.0",
     "fastapi>=0.112.2",
     "loguru>=0.7.3",
@@ -34,8 +38,22 @@ dependencies = [
     "chardet>=4.0.0",
     "dashscope>=1.24.1",
     "pgvector>=0.2.5",
-    "pypdf>=4.2.0",
+    "pypdf>=5.9.0",
+    "pymysql>=1.1.2",
+    "pandas>=2.3.2",
+    "matplotlib>=3.10.6",
+    "seaborn>=0.13.2",
+    "ipython>=9.5.0",
+    "redis>=6.4.0",
+    "jinja2>=3.1.6",
+    "fastapi-radar>=0.1.6",
 ]
+
+#  --- 分组依赖，例如，用于测试和开发 ---
+[dependency-groups]
+test = []
+dev = []
+prod = []
 
 #  --- 可选依赖，例如，用于测试 --- 
 [project.optional-dependencies]
@@ -46,7 +64,7 @@ test = [
 
 #  --- 定义命令行工具 --- 
 [project.scripts]
-agent-cli = "researchagent_server.cli:main"
+agent-cli = "agent_server.cli:main"
 
 # --- 项目地址 --- 
 [project.urls]
@@ -57,7 +75,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = {"" = "."}
 
 # --- 工具配置 (tool.*) ---
 # --- UV配置 --- 

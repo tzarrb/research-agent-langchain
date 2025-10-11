@@ -3,10 +3,13 @@
 import logging
 from typing import List, Optional
 
+import redis  # 新增导入
+
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages import BaseMessage
 from langchain_community.chat_message_histories import RedisChatMessageHistory
-import redis  # 新增导入
+
+from agent_server.config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -14,8 +17,8 @@ class WindowedRedisChatMessageHistory(BaseChatMessageHistory):
     def __init__(
         self,
         session_id: str,
-        url: str = "redis://localhost:6379/0",
-        key_prefix: str = "message_store:",
+        url: str = Settings.db_settings.REDIS_URL,
+        key_prefix: str = Settings.db_settings.REDIS_PREFIX_CHAT_MEMORY,
         ttl: Optional[int] = None,
         window_size: int = 5,
     ):

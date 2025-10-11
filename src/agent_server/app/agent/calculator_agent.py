@@ -336,7 +336,7 @@ async def calculator_run(data: ChatRequest):
                 # logger.info(f"conversation_id: {conversation_id}, chat stream: {html.escape(str(chunk))}")
                 # print(chunk, end="", flush=True)
                 # response={"content":chunk, "conversation_id": conversation_id}    
-                     
+    
                 # 普通对话链返回的是字符串
                 response = chunk if isinstance(chunk, str) else str(chunk)
                 response = json.dumps(response, ensure_ascii=False)

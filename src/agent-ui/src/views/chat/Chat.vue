@@ -327,7 +327,7 @@ const httpRequest = async (message: string) => {
   try {
     // 发送请求到后端 
     // ?input=${encodeURIComponent(message)}&enableLocal=${isLocal.value}&enableWeb=${isWeb.value}&enableThink=${isThink.value}
-    const response = await fetch(`http://localhost:7861/api/chat/completions`, {
+    const response = await fetch(`http://localhost:18081/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Accept': 'text/event-stream',
@@ -436,7 +436,7 @@ const refreshMessage = async () => {
 
 // Element X SSE 请求 ===============================================================================================
 const sseRequest = new XRequest({
-  baseURL: 'http://localhost:18081/api',
+  baseURL: 'http://localhost:18081/v1',
   type: 'fetch',
   transformer: (e) => {
     console.log('transformer:', e)

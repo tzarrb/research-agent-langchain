@@ -7,7 +7,7 @@ import redis
 import html
 
 # 将项目根目录添加到 sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
 from fastapi import Depends
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -34,8 +34,8 @@ from langchain.schema.runnable import RunnablePassthrough
 
 # 历史会话记忆
 from langchain_community.chat_message_histories import RedisChatMessageHistory
-from langchain_core.memory import ConversationBufferWindowMemory
-from agent_server.app.memory.windowed_redis_history import WindowedRedisChatMessageHistory
+
+from langchain_tavily import TavilySearch
 
 from agent_server.app.llm.mode_factory import ModelFactory
 from agent_server.config.settings import Settings
@@ -49,17 +49,45 @@ from agent_server.db.models.chat_conversation_model import ChatConversation
 from agent_server.db.repository.chat_conversation_repository import chat_conversation_repository
 from agent_server.db.base import get_async_db, _AsyncSessionFactory
 
+from agent_server.app.tool.datetime_tool import current_datetime
+from agent_server.app.tool.weather_tool import weather_tool
+from agent_server.app.tool.search_tool import search_tool
+from agent_server.app.tool.retriever_tool import retriever_tool
+
 logger = build_logger("chat-service")
+
+SYSTEM_PROMPT = """
+    你是一位乐于助人的 AI问答助手, 请根据用户的问题以及上下文信息回答问题。
+    如果匹配到合适的工具则调用工具获取信息, 并将工具返回的信息作为回答的一部分。
+    如果没有匹配到合适的工具, 或者无法通过工具解决（例如，问事实、聊天、创作、分析等），则**禁止调用任何工具**，直接运用你的知识来回答。
+    如果你不确定答案, 请说你不知道, 不要编造信息。
+    请使用简体中文回答。
+    """
+
+WEB_SYSTEM_PROMPT = """
+    你是一位乐于助人的 AI问答助手, 请根据用户的问题以及上下文信息回答问题。
+    请优先从网络上搜索用户问题相关的信息, 并将返回的信息作为回答的一部分。如果没有匹配的信息，则直接运用你的知识来回答。
+    如果你不确定答案, 请说你不知道, 不要编造信息。
+    请使用简体中文回答。
+    """
+
+KNOWLEDGE_SYSTEM_PROMPT = """
+    你是一位乐于助人的 AI问答助手, 请根据用户的问题以及上下文信息回答问题。
+    请优先从知识库中获取信息, 并将返回的信息作为回答的一部分。如果知识库中没有匹配的信息，则直接运用你的知识来回答。
+    如果你不确定答案, 请说你不知道, 不要编造信息。
+    请使用简体中文回答。
+    """
 
 # 初始化会话历史
 messages_list: dict[str, BaseChatMessageHistory] = {}
+
     
 def chat(model_name: str, model_provider: str = "deepseek", input: str = ""):
     chat_model = ModelFactory.get_model(model_provider, model_name)
     message = chat_model.invoke(input)
     return message
 
-async def chat_async(data: ChatRequest):
+async def async_chat(data: ChatRequest):
     model_provider = data.model_provider
     model_name = data.model_name
     streaming = data.streaming or True
@@ -73,22 +101,39 @@ async def chat_async(data: ChatRequest):
     callbacks = [std_handler]
     if streaming:
         # 将异步回调处理器添加到回调列表中
-        callbacks = [std_handler, async_handler]
+        callbacks.append(async_handler)
+
+    # 系统提示词
+    system_prompt = SYSTEM_PROMPT
+    if data.enableWeb:
+        system_prompt = WEB_SYSTEM_PROMPT
+    if data.enableLocal:
+        system_prompt = KNOWLEDGE_SYSTEM_PROMPT
+    system_prompt = data.system or system_prompt
+    
+    # 工具
+    tools = [current_datetime, weather_tool]
+    if data.enableWeb:
+        tools.append(search_tool)
+    if data.enableLocal: 
+        tools.append(retriever_tool)
 
     # 聊天模型
-    chat_model = ModelFactory.get_model(model_provider, model_name, streaming, callbacks)
+    chat_model = ModelFactory.get_model(model_provider, model_name, streaming, [])
+    tool_model = chat_model.bind_tools(tools)
+    
     # 输出解析器
     parser = StrOutputParser()
 
     # Prompt 模板
     history_prompt = ChatPromptTemplate.from_messages([
-        ("system", "你是一位乐于助人的 AI问答助手, 请根据用户的问题以及上下文信息回答问题。"),
+        ("system", system_prompt),
         MessagesPlaceholder(variable_name="history"),
         ("human",  "{input}")
     ])
 
     # 链式组合：Prompt → ChatModel
-    conversational_chain = history_prompt | chat_model | parser
+    conversational_chain = history_prompt | tool_model | parser
 
     # 本地知识库RAG向量搜索构建 ====================================================================================
     # 本地知识库向量检索器
@@ -145,7 +190,8 @@ async def chat_async(data: ChatRequest):
     )
     
     # 最终的会话链
-    chain = rag_chain if data.enableLocal else conversational_chain
+    # chain = rag_chain if data.enableLocal else conversational_chain
+    chain = conversational_chain
 
     # 构建包含会话历史的链
     output_messages_key = "answer" if data.enableLocal else "output"
@@ -158,9 +204,9 @@ async def chat_async(data: ChatRequest):
         history_factory_config=[
             ConfigurableFieldSpec(
                 id="conversation_id",
-                annotation=str,
                 name="Conversation ID",            
-                default="",            
+                default="",   
+                annotation=str,         
                 is_shared=True,        
                 ),    
             ],
@@ -182,7 +228,7 @@ async def chat_async(data: ChatRequest):
                 logger.info(f"conversation_id: {conversation_id}, chat stream: {html.escape(str(chunk))}")
                 print(chunk, end="", flush=True)
                 # response={"content":chunk, "conversation_id": conversation_id}    
-                     
+
                 if data.enableLocal:
                     # RAG链返回的是字典，包含answer和context
                     if isinstance(chunk, dict):
@@ -194,7 +240,8 @@ async def chat_async(data: ChatRequest):
                     content = chunk if isinstance(chunk, str) else str(chunk)
 
                 response = {"content": content, "conversation_id": conversation_id}
-                yield json.dumps(response)
+                # yield json.dumps(response)
+                yield f"data: {json.dumps(response, ensure_ascii=False)}\n\n".encode('utf-8')
         else:
             # Use async invocation with proper configuration
             result = await message_history_chain.ainvoke(
@@ -228,8 +275,8 @@ async def save_chat_conversation(input: str, conversation_id: int):
 def get_message_history(conversation_id: str) -> BaseChatMessageHistory:    
     return RedisChatMessageHistory(
         session_id=conversation_id, 
-        url=Settings.basic_settings.REDIS_URL,
-        key_prefix=Settings.basic_settings.REDIS_PREFIX_CHAT_MEMORY,
+        url=Settings.db_settings.REDIS_URL,
+        key_prefix=Settings.db_settings.REDIS_PREFIX_CHAT_MEMORY,
         ttl=60 * 60 * 24 * 7  # 7 days
     )
 
