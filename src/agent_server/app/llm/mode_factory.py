@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 
 import os
@@ -41,7 +41,13 @@ class ModelFactory:
         model_provider: str | None = None,
         model_name: str | None = None, 
         streaming: bool = False,
-        callbacks = None
+        callbacks = None,
+        *,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        max_retries: Optional[int] = None,
+        timeout: Optional[int] = None,
     ):
         
         # 从.env文件加载环境变量
@@ -62,8 +68,8 @@ class ModelFactory:
                     base_url=model_info.get("api_base_url"),
                     model=model_name,
                     streaming=streaming,
-                    temperature=llm_config.get("temperature", 0.5),
-                    top_p=llm_config.get("top_p", 0.5),
+                    temperature=temperature or llm_config.get("temperature", 0.5),
+                    top_p=top_p or llm_config.get("top_p", 0.5),
                     callbacks=callbacks,
                     )
             return chat_model
@@ -96,10 +102,10 @@ class ModelFactory:
                     api_key=SecretStr(model_info.get("api_key")),
                     model=model_name,
                     streaming=streaming,
-                    temperature=llm_config.get("temperature", 0.6), # 随机性：0.0（最确定）–1.0（最随机）
-                    max_tokens=llm_config.get("max_tokens", 8000), # 最多返回多少 token
-                    max_retries=llm_config.get("max_retries", 2),
-                    timeout=llm_config.get("timeout", 60),
+                    temperature=temperature or llm_config.get("temperature", 0.6), # 随机性：0.0（最确定）–1.0（最随机）
+                    max_tokens=max_tokens or llm_config.get("max_tokens", 8000), # 最多返回多少 token
+                    max_retries=max_retries or llm_config.get("max_retries", 2),
+                    timeout=timeout or llm_config.get("timeout", 60),
                     callbacks=callbacks,
             )
             return chat_model
@@ -121,11 +127,11 @@ class ModelFactory:
             api_key=SecretStr(model_info.get("api_key")),
             base_url=model_info.get("api_base_url"),
             streaming=streaming,
-            temperature=llm_config.get("temperature", 0.5),
-            top_p=llm_config.get("top_p", 0.5),
-            max_tokens=llm_config.get("max_tokens", 8000),
-            max_retries=llm_config.get("max_retries", 2),
-            timeout=llm_config.get("timeout", 60),
+            temperature=temperature or llm_config.get("temperature", 0.5),
+            top_p=top_p or llm_config.get("top_p", 0.5),
+            max_tokens=max_tokens or llm_config.get("max_tokens", 8000),
+            max_retries=max_retries or llm_config.get("max_retries", 2),
+            timeout=timeout or llm_config.get("timeout", 60),
             callbacks=callbacks,
         )
         

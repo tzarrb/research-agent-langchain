@@ -3,7 +3,7 @@ import json
 import os
 import sys
 # 将项目根目录添加到 sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../')))
 
 from agent_server.utils.log_util import build_logger
 from agent_server.schemas.chat.chat_request import ChatRequest

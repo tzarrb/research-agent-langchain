@@ -9,16 +9,58 @@ from agent_server.utils.log_util import build_logger
 
 logger = build_logger("search_tool")
 
-class OptimizedSearchTool:
-    def __init__(self):
+
+class SearchTool:
+    def __init__(
+        self,
+        max_results: int = 5, 
+        topic: str = "general",
+        search_depth: str = "advanced",
+        include_answer: bool = True,
+        include_raw_content: bool = False,
+        include_images: bool = False
+    ):
         self.raw_search = TavilySearch(
-            max_results=5,
-            topic="general",
+            max_results=max_results,
+            topic=topic,
             tavily_api_key=Settings.basic_settings.TAVILY_API_KEY,
-            include_answer=True,  # 包含直接答案（通常更简洁）
-            include_raw_content=False,  # 不包含原始HTML内容
-            include_images=False,  # 不包含图片（减少数据量）
-            search_depth="advanced"  # 使用高级搜索
+            include_answer=include_answer,  # 包含直接答案（通常更简洁）
+            include_raw_content=include_raw_content,  # 不包含原始HTML内容
+            include_images=include_images,  # 不包含图片（减少数据量）
+            search_depth=search_depth  # 使用高级搜索
+        )
+    
+        
+    def search(self, query: str) -> str:
+        """优化搜索，限制返回内容长度"""
+        try:
+            # 执行搜索
+            raw_results = self.raw_search.invoke(query)
+            
+            return json.dumps(raw_results, ensure_ascii=False)
+                
+        except Exception as e:
+            return f"搜索出错: {str(e)}"
+    
+    
+class OptimizedSearchTool:
+    def __init__(
+        self, 
+        max_results: int = 5, 
+        topic: str = "general",
+        search_depth: str = "advanced",
+        include_answer: bool = True,
+        include_raw_content: bool = False,
+        include_images: bool = False
+    ):
+        self.raw_search = TavilySearch(
+            max_results=max_results,
+            topic=topic,
+            tavily_api_key=Settings.basic_settings.TAVILY_API_KEY,
+            include_answer=include_answer,  # 包含直接答案（通常更简洁）
+            include_raw_content=include_raw_content,  # 不包含原始HTML内容
+            include_images=include_images,  # 不包含图片（减少数据量）
+            search_depth=search_depth  # 使用高级搜索
         )
     
     def search_with_limits(self, query: str, max_content_length: int = 1500) -> str:
@@ -105,11 +147,17 @@ class OptimizedSearchTool:
         
         return first_part + "...[内容已截断]..." + last_part
 
+search = SearchTool(max_results=3)
 # 创建优化后的搜索工具实例
 optimized_search = OptimizedSearchTool()
 
 @tool(description="Search the web for current information")
 def search_tool(query: str) -> str:
+    """网络搜索工具，返回搜索内容内容"""
+    return search.search(query)
+
+@tool(description="Search the web for current information")
+def optimized_search_tool(query: str) -> str:
     """优化版的网络搜索工具，限制返回内容长度"""
     return optimized_search.search_with_limits(query, max_content_length=1200)
 

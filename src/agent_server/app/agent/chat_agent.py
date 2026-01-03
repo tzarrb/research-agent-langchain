@@ -1,11 +1,10 @@
 
-import json
 import os
 import sys
+import json
 import operator
 import requests
 
-from agent_server.config import settings
 # 将项目根目录添加到 sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
@@ -56,7 +55,7 @@ from agent_server.db.base import get_async_db, _AsyncSessionFactory
 
 from agent_server.app.tool.datetime_tool import current_datetime
 from agent_server.app.tool.weather_tool import weather_tool
-from agent_server.app.tool.search_tool import search_tool
+from agent_server.app.tool.search_tool import optimized_search_tool
 from agent_server.app.tool.retriever_tool import retriever_tool
 
 logger = build_logger("basic-agent")
@@ -102,7 +101,7 @@ async def async_chat_agent(data: ChatRequest):
     # 工具
     tools = [current_datetime, weather_tool]
     if data.enableWeb:
-        tools.append(search_tool)
+        tools.append(optimized_search_tool)
     if data.enableLocal:
         tools.append(retriever_tool)
 
@@ -233,7 +232,9 @@ async def async_chat_agent(data: ChatRequest):
                         elif tool_call.get('args'):
                             logger.debug(f"Agent calling tool with args: {tool_call.get('args')}")
                 elif node == "tools":
-                    logger.debug(f"Tool response content: {token.content}")
+                    tool_name = token.name or "未知工具"
+                    tool_use = "> 调用工具:" + tool_name + "\n\n"
+                    logger.debug(f"{tool_use}, Tool response content: {token.content}")
 
                 result = {"content": content, "conversation_id": conversation_id}
                 logger.debug(f"Agent stream response result: {result}")
@@ -269,7 +270,7 @@ async def async_chat_graph(data: ChatRequest):
     # 工具
     tools = [current_datetime, weather_tool]
     if data.enableWeb:
-        tools.append(search_tool)
+        tools.append(optimized_search_tool)
     if data.enableLocal:
         tools.append(retriever_tool)
     tools_by_name = {tool.name: tool for tool in tools}
@@ -416,7 +417,7 @@ async def async_chat_graph(data: ChatRequest):
             # async for chunk in agent.astream(
             #     input={"messages": [human_message]},
             #     config=runnable_config,
-            #     stream_mode="values" # values:以完整响应块流式传输, messages:以token流式传输，updates:分步骤输出
+            #     stream_mode="values" # values:以完整响应块流式传输，updates:分步骤输出, messages:以token流式传输
             # ):
             #     logger.info(f"Agent response chunk: {chunk}")
                 
@@ -521,7 +522,7 @@ async def async_chat_graph_summary(data: ChatRequest):
     # 工具
     tools = [current_datetime, weather_tool]
     if data.enableWeb:
-        tools.append(search_tool)
+        tools.append(optimized_search_tool)
     if data.enableLocal:
         tools.append(retriever_tool)
     tools_by_name = {tool.name: tool for tool in tools}

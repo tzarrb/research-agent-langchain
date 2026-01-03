@@ -51,7 +51,7 @@ from agent_server.db.base import get_async_db, _AsyncSessionFactory
 
 from agent_server.app.tool.datetime_tool import current_datetime
 from agent_server.app.tool.weather_tool import weather_tool
-from agent_server.app.tool.search_tool import search_tool
+from agent_server.app.tool.search_tool import optimized_search_tool
 from agent_server.app.tool.retriever_tool import retriever_tool
 
 logger = build_logger("chat-service")
@@ -114,7 +114,7 @@ async def async_chat(data: ChatRequest):
     # 工具
     tools = [current_datetime, weather_tool]
     if data.enableWeb:
-        tools.append(search_tool)
+        tools.append(optimized_search_tool)
     if data.enableLocal: 
         tools.append(retriever_tool)
 

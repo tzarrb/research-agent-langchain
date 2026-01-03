@@ -23,6 +23,8 @@ dependencies = [
     "langgraph-sdk>=0.2.0",
     "langgraph-checkpoint-postgres>=2.0.25",
     "langgraph-checkpoint-redis>=0.1.2",
+    "langgraph-supervisor>=0.0.29",
+    "langgraph-swarm>=0.0.14",
     "langsmith>=0.4.5",
     "langmem>=0.0.29",
     "uvicorn>=0.35.0",
@@ -47,6 +49,7 @@ dependencies = [
     "redis>=6.4.0",
     "jinja2>=3.1.6",
     "fastapi-radar>=0.1.6",
+    "rich>=14.2.0",
 ]
 
 #  --- 分组依赖，例如，用于测试和开发 ---

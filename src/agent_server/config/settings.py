@@ -14,8 +14,10 @@ from agent_server import __version__
 
 
 # 数据目录，必须通过环境变量设置。如未设置则自动使用当前目录。
-ROOT = Path(os.environ.get("RESEARCHAGENT_LANGCHAIN_ROOT", ".")).resolve()
-AGENT_ROOT = Path(os.environ.get("RESEARCHAGENT_LANGCHAIN_AGENT_ROOT", "./src/agent_server/")).resolve()
+# ROOT = Path(os.environ.get("RESEARCHAGENT_LANGCHAIN_ROOT", ".")).resolve()
+# AGENT_ROOT = Path(os.environ.get("RESEARCHAGENT_LANGCHAIN_AGENT_ROOT", "./src/agent_server/")).resolve()
+ROOT: Path = Path("F:/Project/Python/my/research-agent-langchain").resolve()
+AGENT_ROOT: Path = Path("F:/Project/Python/my/research-agent-langchain/src/agent_server").resolve()
 print(f"ROOT: {ROOT}, AGENT_ROOT: {AGENT_ROOT}")
 
 
@@ -122,6 +124,13 @@ class BasicSettings(BaseFileSettings):
         p.mkdir(parents=True, exist_ok=True)
         return p
 
+    @cached_property
+    def TEMP_IMAGE_PATH(self) -> Path:
+        """临时图片目录"""
+        p = self.TEMP_PATH / "images"
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
     KN_ROOT_PATH: str = str(AGENT_ROOT / "data/knowledge")
     """知识库默认存储路径"""
 
@@ -218,7 +227,7 @@ class ModelSettings(BaseFileSettings):
     DEFAULT_LLM_MODEL: str = "deepseek-chat"
     """默认选用的 LLM 名称"""
 
-    DEFAULT_EMBEDDING_MODEL: str = "bge-m3"
+    DEFAULT_EMBEDDING_MODEL: str = "text-embedding-v1"
     """默认选用的 Embedding 名称"""
 
     HISTORY_LEN: int = 3
