@@ -83,6 +83,7 @@ class VsService(ABC):
         kn_name: str | None = None,
         kn_info: str | None = None,
         embed_model: str = get_default_embedding(),
+        docs_list: list[str] = [],
     ):
         self.kn_name = kn_name or Settings.kn_settings.DEFAULT_KNOWLEDGE_NAME
         self.kn_info = kn_info or Settings.kn_settings.KN_INFO.get(kn_name, f"关于{kn_name}的知识库")
@@ -97,6 +98,7 @@ class VsService(ABC):
         )
         self.kn_path = get_kn_path(self.kn_name)
         self.doc_path = get_doc_path(self.kn_name)
+        self.docs_list = docs_list
         self.do_init()
         
     

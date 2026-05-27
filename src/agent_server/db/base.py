@@ -52,7 +52,7 @@ def setup_sync_session_factory():
     logger.info("同步正在创建数据库引擎...")
     # 创建同步引擎
     _sync_engine = create_engine(
-        Settings.db_settings.SQLALCHEMY_DATABASE_URI,
+        Settings.db_settings.POSTGRES_ASYNCPG_DATABASE_URI,
         pool_size=Settings.db_settings.POOL_SIZE,
         max_overflow=Settings.db_settings.MAX_OVERFLOW,
         pool_timeout=Settings.db_settings.POOL_TIMEOUT,
@@ -81,7 +81,7 @@ async def setup_async_session_factory():
     logger.info("异步正在创建数据库引擎...")
     _async_engine = create_async_engine(
         # settings 对象中读取计算生成的数据库连接字符串
-        Settings.db_settings.SQLALCHEMY_DATABASE_URI,
+        Settings.db_settings.POSTGRES_ASYNCPG_DATABASE_URI,
         pool_size=Settings.db_settings.POOL_SIZE,
         max_overflow=Settings.db_settings.MAX_OVERFLOW,
         pool_timeout=Settings.db_settings.POOL_TIMEOUT,
@@ -133,7 +133,7 @@ def get_sync_session_factory() -> Optional[sessionmaker[Session]]:
     """获取同步会话工厂"""
     return _SyncSessionFactory
 
-# 获取异步会话连接
+# 获取同步会话连接
 def get_sync_db()  -> Generator[Session, Any, None]:
     """
     FastAPI 依赖注入函数，为每个请求提供一个独立的数据库会话。

@@ -4,7 +4,8 @@ from nltk import pr
 from fastapi import APIRouter, Request, Response, Body
 from fastapi.responses import StreamingResponse
 
-from agent_server.app.chat.chat_service import chat, chat_async
+# from agent_server.app.service.chat_service import async_chat
+from agent_server.app.service.agent_service import async_chat
 from agent_server.schemas.chat.chat_request import ChatRequest
 from agent_server.utils.id_util import id_generator
 
@@ -25,7 +26,7 @@ async def chat_completions(request: Request, response: Response, data: ChatReque
     headers = {"conversation_id": conversation_id}
     response.headers.update(headers)
     
-    result_generator = chat_async(data)
+    result_generator = async_chat(data)
     
     if streaming:
         # 流式输出

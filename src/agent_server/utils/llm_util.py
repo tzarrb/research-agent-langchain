@@ -8,8 +8,8 @@ from langchain.tools import BaseTool
 from langchain_core.embeddings import Embeddings
 from langchain_community.embeddings import DashScopeEmbeddings
 
-from config.settings import Settings,PlatformConfig
-from utils.log_util import build_logger
+from agent_server.config.settings import Settings,PlatformConfig
+from agent_server.utils.log_util import build_logger
 
 
 logger = build_logger("llm-util")

@@ -1,16 +1,19 @@
 from gc import collect
 import json
-from typing import override
+from typing import Any, override
+
+# import rank_bm25
 
 from langchain_core.documents import Document
 from langchain_core.embeddings import DeterministicFakeEmbedding
 from langchain_postgres import PGEngine, PGVectorStore
 from langchain_postgres.v2.indexes import DistanceStrategy
+from langchain.retrievers import EnsembleRetriever, BM25Retriever
 
-from .base import VsService, SupportedVSType
-from app.llm.mode_factory import ModelFactory
-from utils.log_util import build_logger
-from config.settings import Settings
+from agent_server.app.rag.vector_store.base import VsService, SupportedVSType
+from agent_server.app.llm.mode_factory import ModelFactory
+from agent_server.utils.log_util import build_logger
+from agent_server.config.settings import Settings
 
 
 logger = build_logger("vector-store-service")
@@ -73,8 +76,32 @@ class VsPGService(VsService):
         score_threshold: int | float = Settings.kn_settings.VECTOR_SEARCH_SCORE_THRESHOLD,
         ):
         """
-        获取向量库检索器 VectorStoreRetriever
+        获取向量库检索器 
+        Builds BM25 and vector-based retrievers and combines them into an ensemble retriever.
+
+        Returns:
+            EnsembleRetriever: Combined retriever using BM25 and vector-based methods.
         """
+        # logger.info("Building BM25 retriever.")
+        # docs_list: list[str] = self.docs_list
+        # bm25_retriever = BM25Retriever.from_documents(docs_list, search_kwargs={"k": top_k})
+
+        # logger.info("Building vector-based retrievers.")
+        # retriever_vanilla = self.store.as_retriever(
+        #     search_type="similarity", search_kwargs={"k": top_k}
+        # )
+        # retriever_mmr = self.store.as_retriever(
+        #     search_type="mmr", search_kwargs={"k": top_k}
+        # )
+
+        # logger.info("Combining retrievers into an ensemble retriever.")
+        # ensemble_retriever = EnsembleRetriever(
+        #     retrievers=[retriever_vanilla, retriever_mmr, bm25_retriever],
+        #     weights=[0.3, 0.3, 0.4],
+        # )
+        # logger.info("Retrievers built successfully.")
+        # return ensemble_retriever
+        
         retriever = self.store.as_retriever(
             search_type="similarity", # 可选值: "similarity", "similarity_score_threshold", "mmr"
             search_kwargs={"score_threshold": score_threshold, "k": top_k}
@@ -84,16 +111,6 @@ class VsPGService(VsService):
 
 if __name__ == "__main__":
     
-    import os
-    import sys
-    
-    # 把 src 加入 sys.path
-    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    if BASE_DIR not in sys.path:
-        sys.path.insert(0, BASE_DIR)
-    print("Current sys.path = ", sys.path)
-
-
     # 测试向量库服务
     vs_service = VsPGService(embed_model=Settings.model_settings.DEFAULT_EMBEDDING_MODEL)
     #vs_service.init_vector_store()

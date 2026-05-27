@@ -14,9 +14,11 @@ from agent_server import __version__
 
 
 # 数据目录，必须通过环境变量设置。如未设置则自动使用当前目录。
-ROOT = Path(os.environ.get("RESEARCHAGENT_LANGCHAIN_ROOT", ".")).resolve()
-AGENT_ROOT = Path(os.environ.get("RESEARCHAGENT_LANGCHAIN_AGENT_ROOT", "./src/agent_server/")).resolve()
-print(f"ROOT: {AGENT_ROOT}, AGENT_ROOT: {AGENT_ROOT}")
+# ROOT = Path(os.environ.get("RESEARCHAGENT_LANGCHAIN_ROOT", ".")).resolve()
+# AGENT_ROOT = Path(os.environ.get("RESEARCHAGENT_LANGCHAIN_AGENT_ROOT", "./src/agent_server/")).resolve()
+ROOT: Path = Path("F:/Project/Python/my/research-agent-langchain").resolve()
+AGENT_ROOT: Path = Path("F:/Project/Python/my/research-agent-langchain/src/agent_server").resolve()
+print(f"ROOT: {ROOT}, AGENT_ROOT: {AGENT_ROOT}")
 
 
 class BasicSettings(BaseFileSettings):
@@ -31,18 +33,29 @@ class BasicSettings(BaseFileSettings):
     version: str = __version__
     """生成该配置模板的项目代码版本，如这里的值与程序实际版本不一致，建议重建配置文件模板"""
 
+    project: str = "research-agent-langchain"
+    """项目名称"""
+
     log_verbose: bool = False
     """是否开启日志详细信息"""
 
     HTTPX_DEFAULT_TIMEOUT: float = 300
     """httpx 请求默认超时时间（秒）。如果加载模型或对话较慢，出现超时错误，可以适当加大该值。"""
 
-    # redis 配置
-    REDIS_URL: str = "redis://localhost:6379/0" # 密码redis://:123456@localhost:6379/0
-    # Redis 前缀
-    REDIS_PREFIX: str = "researchagent-lang:"
-    # Redis 前缀 - 会话消息存储
-    REDIS_PREFIX_CHAT_MEMORY: str = REDIS_PREFIX + "chat:memory:"
+    # Langsmith API Key
+    LANGSMITH_API_KEY: str = "<your-api-key>"    
+
+    # 天气获取的配置
+    WEATHER_KEY: str = "<your-api-key>"
+    WEATHER_URL: str = "http://api.openweathermap.org/data/2.5/weather"
+    # 心知天气API
+    WEATHER_SENIVERSE_KEY: str = "<your-api-key>"
+    WEATHER_SENIVERSE_URL: str = "https://api.seniverse.com/v3/weather/daily.json"
+
+    # Tavily 搜索配置
+    TAVILY_API_KEY: str = "<your-api-key>"
+    TAVILY_API_URL: str = "https://api.tavily.com/search"
+
 
     # 使用 @computed_field，可以在模型内部根据其他字段动态生成新字段
     # 这比在模型外部手动拼接字符串要优雅得多。
@@ -111,6 +124,13 @@ class BasicSettings(BaseFileSettings):
         p.mkdir(parents=True, exist_ok=True)
         return p
 
+    @cached_property
+    def TEMP_IMAGE_PATH(self) -> Path:
+        """临时图片目录"""
+        p = self.TEMP_PATH / "images"
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
     KN_ROOT_PATH: str = str(AGENT_ROOT / "data/knowledge")
     """知识库默认存储路径"""
 
@@ -144,7 +164,6 @@ class BasicSettings(BaseFileSettings):
         for n in ["image", "audio", "video"]:
             (self.MEDIA_PATH / n).mkdir(parents=True, exist_ok=True)
         Path(self.KN_ROOT_PATH).mkdir(parents=True, exist_ok=True)
-
 
 class PlatformConfig(MyBaseModel):
     """模型加载平台配置"""
@@ -196,8 +215,7 @@ class PlatformConfig(MyBaseModel):
     #     if not v or v == "":
     #         raise ValueError("API key不能为空")
     #     return v
- 
- 
+
 class ModelSettings(BaseFileSettings):
     """模型配置项"""
 
@@ -209,7 +227,7 @@ class ModelSettings(BaseFileSettings):
     DEFAULT_LLM_MODEL: str = "deepseek-chat"
     """默认选用的 LLM 名称"""
 
-    DEFAULT_EMBEDDING_MODEL: str = "bge-m3"
+    DEFAULT_EMBEDDING_MODEL: str = "text-embedding-v1"
     """默认选用的 Embedding 名称"""
 
     HISTORY_LEN: int = 3
@@ -690,7 +708,6 @@ class PromptSettings(BaseFileSettings):
     }
     """后处理模板"""
 
-
 class KNSettings(BaseFileSettings):
     """知识库相关配置"""
 
@@ -698,6 +715,9 @@ class KNSettings(BaseFileSettings):
 
     DEFAULT_KNOWLEDGE_NAME: str = "samples"
     """默认使用的知识库"""
+
+    DEFAULT_KN_TYPE: str = "local"
+    """默认知识库类型，可选值: "local" (本地知识库), "remote" (远程知识库)"""
 
     DEFAULT_VS_TYPE: t.Literal["faiss", "milvus", "zilliz", "pg", "es", "relyt", "chromadb"] = "pg"
     """默认向量库/全文检索引擎类型"""
@@ -823,21 +843,32 @@ class KNSettings(BaseFileSettings):
             },
         }
 
-    TEXT_SPLITTER_NAME: str = "ChineseRecursiveTextSplitter"
+    TEXT_SPLITTER_NAME: str = "RecursiveCharacterTextSplitter"
     """TEXT_SPLITTER 名称"""
 
     EMBEDDING_KEYWORD_FILE: str = "embedding_keywords.txt"
     """Embedding模型定制词语的词表文件"""
-
 
 class DBSettings(BaseFileSettings):
     """数据库相关配置"""
     
     model_config = SettingsConfigDict(yaml_file=AGENT_ROOT / "config/db_settings.yaml")
     
+    
+    # redis 配置
+    REDIS_URL: str = "redis://localhost:6379/0"
+    """Redis 连接 URL"""
+    REDIS_PREFIX: str = "researchagent-lang:"
+    """Redis 前缀"""
+    REDIS_PREFIX_CHAT_MEMORY: str = REDIS_PREFIX + "chat:memory:"
+    """Redis 前缀 - 会话消息存储"""
+    
     # SQLALCHEMY_DATABASE_URI:str = "sqlite:///" + str(AGENT_ROOT / "data/knowledge/info.db")
-    SQLALCHEMY_DATABASE_URI:str = "postgresql+asyncpg://root:123456@127.0.0.1:5433/researchagent"
+    POSTGRES_ASYNCPG_DATABASE_URI:str = "postgresql+asyncpg://root:123456@127.0.0.1:5432/researchagent"
     """知识库信息数据库连接URI"""
+    
+    POSTGRES_DATABASE_URI:str = "postgresql+psycopg2://root:123456@127.0.0.1:5432/researchagent"
+    """PostgreSQL数据库连接URI"""
 
     POOL_SIZE: int = 10
     """数据库连接池大小"""
